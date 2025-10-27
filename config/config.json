@@ -6,7 +6,7 @@
         "trustedConnection": true
     },
     "server": {
-        "port": 3003
+        "port": 8006
     },
     "files": {
         "queryFile": "config/searchQuery",
