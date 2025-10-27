@@ -1,0 +1,15 @@
+{
+    "database": {
+        "driver": "ODBC Driver 17 for SQL Server",
+        "server": "LOBTESTSQL2023\\ITDLVENT",
+        "database": "SaS2",
+        "trustedConnection": true
+    },
+    "server": {
+        "port": 3003
+    },
+    "files": {
+        "queryFile": "config/searchQuery",
+        "defaultQuery": "SELECT TOP (100) * FROM dbo.vfxusr"
+    }
+}
