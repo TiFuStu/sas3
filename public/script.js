@@ -18,6 +18,7 @@ async function fetchUsers() {
   } catch (err) {
     app.innerHTML =
       '<div class="error">Fehler beim Laden der Benutzerdaten</div>';
+    console.log(allUsers);
     console.error(err);
   }
 }
