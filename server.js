@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 const express = require("express");
 const sql = require("mssql/msnodesqlv8");
 const path = require("path");
@@ -337,4 +336,3 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);
 });
->>>>>>> 0bc6a191ec507c19dca27339300d01606b4113ae

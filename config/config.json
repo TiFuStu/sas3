@@ -6,7 +6,7 @@
         "instanceName": "ITDLVENT",
         "trustedConnection": false,
         "serviceUser": "sas2_user",
-        "servicePassword": "servicePassword"
+        "servicePassword": "pw_sas2_user"
     },
     "server": {
         "port": 8006
