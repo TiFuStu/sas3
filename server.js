@@ -49,17 +49,14 @@ const dbConfig = {
     encrypt: false,
     trustServerCertificate: true,
     enableArithAbort: true,
-    instanceName: config.database.instanceName
-  }
+    instanceName: config.database.instanceName,
+  },
 };
-console.log(
-  "Using Service User:",
-  config.database.serviceUser,
-);
+console.log("Using Service User:", config.database.serviceUser);
 console.log("Database Config:", {
   server: config.database.server,
   database: config.database.database,
-  user: config.database.serviceUser
+  user: config.database.serviceUser,
 });
 
 let pool;
