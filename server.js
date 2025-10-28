@@ -1,5 +1,5 @@
 const express = require("express");
-const sql = require("mssql"); // Geändert von mssql/msnodesqlv8
+const sql = require("mssql");
 const path = require("path");
 const fs = require("fs");
 
@@ -41,7 +41,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const dbConfig = {
   server: config.database.server,
-  port: config.database.port || 1433,
+  port: config.database.port,
   database: config.database.database,
   user: config.database.serviceUser,
   password: config.database.servicePassword,
@@ -49,14 +49,17 @@ const dbConfig = {
     encrypt: false,
     trustServerCertificate: true,
     enableArithAbort: true,
-    instanceName: config.database.instanceName,
-  },
+    instanceName: config.database.instanceName
+  }
 };
-console.log("Using Service User:", config.database.serviceUser);
+console.log(
+  "Using Service User:",
+  config.database.serviceUser,
+);
 console.log("Database Config:", {
   server: config.database.server,
   database: config.database.database,
-  user: config.database.serviceUser,
+  user: config.database.serviceUser
 });
 
 let pool;
@@ -119,43 +122,6 @@ app.get("/api/users", async (req, res) => {
     res.json(result.recordset);
   } catch (err) {
     console.error("API Error:", err);
-    res.status(500).json({ error: "Database error: " + err.message });
-  }
-});
-
-app.post("/api/users", async (req, res) => {
-  try {
-    if (!pool || !pool.connected) {
-      await initializeDatabase();
-    }
-
-    const { user_name, useraccess } = req.body;
-
-    if (!user_name || useraccess === undefined) {
-      return res
-        .status(400)
-        .json({ error: "user_name and useraccess are required" });
-    }
-
-    const insertQuery = `
-            INSERT INTO dbo.vfxusr (user_name, useraccess) 
-            VALUES (@user_name, @useraccess)
-        `;
-
-    const request = pool.request();
-    request.input("user_name", sql.VarChar, user_name);
-    request.input("useraccess", sql.Int, parseInt(useraccess));
-
-    console.log("Inserting user:", { user_name, useraccess });
-    await request.query(insertQuery);
-
-    res.json({
-      success: true,
-      message: "User added successfully",
-      user: { user_name, useraccess },
-    });
-  } catch (err) {
-    console.error("Insert Error:", err);
     res.status(500).json({ error: "Database error: " + err.message });
   }
 });

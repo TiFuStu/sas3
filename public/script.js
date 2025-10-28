@@ -80,59 +80,8 @@ function filterUsers() {
   renderTable(filteredUsers);
 }
 
-function showAddForm() {
-  document.getElementById("addForm").style.display = "block";
-  document.getElementById("userName").focus();
-}
-
-function hideAddForm() {
-  document.getElementById("addForm").style.display = "none";
-  document.getElementById("userForm").reset();
-}
-
-async function addUser(userData) {
-  try {
-    const response = await fetch("/api/users", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(userData),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to add user");
-    }
-
-    const result = await response.json();
-    console.log("User added:", result);
-
-    // Form schließen und Daten neu laden
-    hideAddForm();
-    fetchUsers();
-
-    alert("Benutzer wurde erfolgreich hinzugefügt!");
-  } catch (err) {
-    console.error("Add user error:", err);
-    alert("Fehler beim Hinzufügen des Benutzers: " + err.message);
-  }
-}
-
 // Event Listeners
 document.getElementById("searchBox").addEventListener("input", filterUsers);
-
-document.getElementById("userForm").addEventListener("submit", function (e) {
-  e.preventDefault();
-
-  const formData = new FormData(e.target);
-  const userData = {
-    user_name: formData.get("user_name"),
-    useraccess: parseInt(formData.get("useraccess")),
-  };
-
-  addUser(userData);
-});
 
 fetchUsers();
 
