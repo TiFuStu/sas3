@@ -1,12 +1,15 @@
 {
     "database": {
         "driver": "ODBC Driver 17 for SQL Server",
-        "server": "LOBTESTSQL2023\\ITDLVENT",
+        "server": "10.100.210.149\\ITDLVENT",
         "database": "SaS2",
-        "trustedConnection": true
+        "instanceName": "ITDLVENT",
+        "trustedConnection": false,
+        "serviceUser": "sas2_user",
+        "servicePassword": "servicePassword"
     },
     "server": {
-        "port": 3003
+        "port": 8006
     },
     "files": {
         "queryFile": "config/searchQuery",
