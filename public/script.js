@@ -81,7 +81,6 @@ function filterUsers() {
   renderTable(filteredUsers);
 }
 
-// Event Listeners
 document.getElementById("searchBox").addEventListener("input", filterUsers);
 
 fetchUsers();
