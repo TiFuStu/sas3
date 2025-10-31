@@ -109,14 +109,14 @@ initializeDatabase();
 app.get("/api/users", async (req, res) => {
   try {
     console.log("API /api/users called");
-    
+
     if (!pool || !pool.connected) {
       console.log("Pool not connected, reconnecting...");
       await initializeDatabase();
     }
 
     const query = loadSqlQuery();
-    
+
     if (!query) {
       throw new Error("No query loaded");
     }
@@ -128,10 +128,10 @@ app.get("/api/users", async (req, res) => {
   } catch (err) {
     console.error("API Error:", err);
     console.error("Error stack:", err.stack);
-    res.status(500).json({ 
-      error: "Database error", 
+    res.status(500).json({
+      error: "Database error",
       message: err.message,
-      details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+      details: process.env.NODE_ENV === "development" ? err.stack : undefined,
     });
   }
 });
@@ -140,6 +140,6 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "/public/index.html"));
 });
 
-app.listen(PORT, '0.0.0.0',() => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server listening on http://localhost:${PORT}`);
 });
