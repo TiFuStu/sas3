@@ -10,7 +10,7 @@
         "servicePassword": "pw_sas2_user"
     },
     "server": {
-        "port": 8020
+        "port": 8006
     },
     "files": {
         "queryFile": "config/searchQuery",
