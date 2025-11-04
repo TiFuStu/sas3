@@ -49,14 +49,17 @@ const dbConfig = {
     encrypt: false,
     trustServerCertificate: true,
     enableArithAbort: true,
-    instanceName: config.database.instanceName,
-  },
+    instanceName: config.database.instanceName
+  }
 };
-console.log("Using Service User:", config.database.serviceUser);
+console.log(
+  "Using Service User:",
+  config.database.serviceUser,
+);
 console.log("Database Config:", {
   server: config.database.server,
   database: config.database.database,
-  user: config.database.serviceUser,
+  user: config.database.serviceUser
 });
 
 let pool;
@@ -119,17 +122,9 @@ async function initializeDatabase() {
 app.get("/api/users", async (req, res) => {
   try {
     console.log("API /api/users called");
-<<<<<<< HEAD
-
-    if (!pool || !pool.connected) {
-      console.log("Pool not connected, reconnecting...");
-      await initializeDatabase();
-    }
-=======
->>>>>>> c935ca89d0422d8c0139b96b6653db10aca36ec0
 
     const query = loadSqlQuery();
-
+    
     if (!query) {
       throw new Error("No query loaded");
     }
@@ -140,14 +135,6 @@ app.get("/api/users", async (req, res) => {
     
     res.json(result.recordset);
   } catch (err) {
-<<<<<<< HEAD
-    console.error("API Error:", err);
-    console.error("Error stack:", err.stack);
-    res.status(500).json({
-      error: "Database error",
-      message: err.message,
-      details: process.env.NODE_ENV === "development" ? err.stack : undefined,
-=======
     console.error("=== API ERROR ===");
     console.error("Error:", err);
     console.error("Message:", err.message);
@@ -155,7 +142,6 @@ app.get("/api/users", async (req, res) => {
     res.status(500).json({
       error: "Database error",
       message: err.message
->>>>>>> c935ca89d0422d8c0139b96b6653db10aca36ec0
     });
   }
 });
@@ -164,11 +150,6 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "/public/index.html"));
 });
 
-<<<<<<< HEAD
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server listening on http://localhost:${PORT}`);
-});
-=======
 app.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);
   
@@ -176,4 +157,3 @@ app.listen(PORT, () => {
     console.error("Failed to initialize database:", err);
   });
 });
->>>>>>> c935ca89d0422d8c0139b96b6653db10aca36ec0
