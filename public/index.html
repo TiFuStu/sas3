@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="de">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8">
+    <title>User Management | SaS2</title>
+    <link rel="stylesheet" href="styles c.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>User Management</h1>
+            <p>Database: SaS2 | Table: dbo.vfxusr</p>
+        </div>
+        
+        <div class="content">
+            <div class="search-controls">
+                <div class="search-container">
+                    <input type="text" class="search-box" id="searchBox" placeholder="Benutzer suchen...">
+                    <button class="refresh-btn" onclick="fetchUsers()">
+                        Aktualisieren
+                    </button>
+                </div>
+                
+                <div class="stats">
+                    <div class="user-count" id="userCount">Lade Daten...</div>
+                </div>
+            </div>
+            
+            <div class="table-wrapper">
+                <div id="app">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Lade Benutzerdaten...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
