@@ -49,17 +49,14 @@ const dbConfig = {
     encrypt: false,
     trustServerCertificate: true,
     enableArithAbort: true,
-    instanceName: config.database.instanceName
-  }
+    instanceName: config.database.instanceName,
+  },
 };
-console.log(
-  "Using Service User:",
-  config.database.serviceUser,
-);
+console.log("Using Service User:", config.database.serviceUser);
 console.log("Database Config:", {
   server: config.database.server,
   database: config.database.database,
-  user: config.database.serviceUser
+  user: config.database.serviceUser,
 });
 
 let pool;
@@ -101,7 +98,7 @@ async function initializeDatabase() {
         console.log("Error closing existing pool:", e.message);
       }
     }
-    
+
     pool = new sql.ConnectionPool(dbConfig);
     await pool.connect();
     console.log("Database connected successfully");
@@ -112,7 +109,6 @@ async function initializeDatabase() {
     const result = await pool.request().query(query);
     console.log("Query successful, rows:", result.recordset.length);
     console.log("initial run successful");
-
   } catch (err) {
     console.error("DB-Connect Error:", err);
     console.error("Error details:", err.message);
@@ -124,7 +120,7 @@ app.get("/api/users", async (req, res) => {
     console.log("API /api/users called");
 
     const query = loadSqlQuery();
-    
+
     if (!query) {
       throw new Error("No query loaded");
     }
@@ -132,7 +128,7 @@ app.get("/api/users", async (req, res) => {
     console.log("Executing query:", query);
     const result = await pool.request().query(query);
     console.log("Query successful, rows:", result.recordset.length);
-    
+
     res.json(result.recordset);
   } catch (err) {
     console.error("=== API ERROR ===");
@@ -141,7 +137,7 @@ app.get("/api/users", async (req, res) => {
     console.error("Stack:", err.stack);
     res.status(500).json({
       error: "Database error",
-      message: err.message
+      message: err.message,
     });
   }
 });
@@ -152,8 +148,8 @@ app.get("/", (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);
-  
-  initializeDatabase().catch(err => {
+
+  initializeDatabase().catch((err) => {
     console.error("Failed to initialize database:", err);
   });
 });
