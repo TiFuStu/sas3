@@ -7,7 +7,7 @@
         "trustedConnection": false,
         "port": 1433,
         "serviceUser": "sas2_user",
-        "servicePassword": "servicePassword"
+        "servicePassword": "pw_sas2_user"
     },
     "server": {
         "port": 8006
