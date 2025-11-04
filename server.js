@@ -63,7 +63,6 @@ console.log("Database Config:", {
 });
 
 let pool;
-let poolConnect;
 let currentQuery = "";
 const queryFilePath = path.join(__dirname, config.files.queryFile);
 
@@ -95,28 +94,34 @@ fs.watchFile(queryFilePath, (curr, prev) => {
 
 async function initializeDatabase() {
   try {
+    if (pool) {
+      try {
+        await pool.close();
+      } catch (e) {
+        console.log("Error closing existing pool:", e.message);
+      }
+    }
+    
     pool = new sql.ConnectionPool(dbConfig);
-    poolConnect = pool.connect();
-    await poolConnect;
+    await pool.connect();
     console.log("Database connected successfully");
 
-    loadSqlQuery();
+    const query = loadSqlQuery();
+
+    console.log("Executing query:", query);
+    const result = await pool.request().query(query);
+    console.log("Query successful, rows:", result.recordset.length);
+    console.log("initial run successful");
+
   } catch (err) {
     console.error("DB-Connect Error:", err);
     console.error("Error details:", err.message);
   }
 }
 
-initializeDatabase();
-
 app.get("/api/users", async (req, res) => {
   try {
     console.log("API /api/users called");
-    
-    if (!pool || !pool.connected) {
-      console.log("Pool not connected, reconnecting...");
-      await initializeDatabase();
-    }
 
     const query = loadSqlQuery();
     
@@ -127,14 +132,16 @@ app.get("/api/users", async (req, res) => {
     console.log("Executing query:", query);
     const result = await pool.request().query(query);
     console.log("Query successful, rows:", result.recordset.length);
+    
     res.json(result.recordset);
   } catch (err) {
-    console.error("API Error:", err);
-    console.error("Error stack:", err.stack);
-    res.status(500).json({ 
-      error: "Database error", 
-      message: err.message,
-      details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    console.error("=== API ERROR ===");
+    console.error("Error:", err);
+    console.error("Message:", err.message);
+    console.error("Stack:", err.stack);
+    res.status(500).json({
+      error: "Database error",
+      message: err.message
     });
   }
 });
@@ -143,6 +150,10 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "/public/index.html"));
 });
 
-app.listen(PORT, '0.0.0.0',() => {
+app.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);
+  
+  initializeDatabase().catch(err => {
+    console.error("Failed to initialize database:", err);
+  });
 });

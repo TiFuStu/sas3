@@ -7,13 +7,13 @@
         "trustedConnection": false,
         "port": 1433,
         "serviceUser": "sas2_user",
-        "servicePassword": "pw_sas2_user"
+        "servicePassword": "servicePassword"
     },
     "server": {
         "port": 8006
     },
     "files": {
         "queryFile": "config/searchQuery",
-        "defaultQuery": "SELECT TOP (100) * FROM dbo.vfxusr"
+        "defaultQuery": "SELECT TOP (1000) [ledituser],[ledittime],[xuser],[user_name],[dienststel],[userlevel],[useraccess] FROM dbo.vfxusr"
     }
 }
