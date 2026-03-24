@@ -1,19 +1,80 @@
 {
-    "database": {
-        "driver": "ODBC Driver 17 for SQL Server",
-        "server": "10.100.210.149\\ITDLVENT",
-        "database": "SaS2",
-        "instanceName": "ITDLVENT",
-        "trustedConnection": false,
-        "port": 1433,
-        "serviceUser": "sas2_user",
-        "servicePassword": "pw_sas2_user"
-    },
-    "server": {
-        "port": 8006
-    },
-    "files": {
-        "queryFile": "config/searchQuery",
-        "defaultQuery": "SELECT TOP (1000) [ledituser],[ledittime],[xuser],[user_name],[dienststel],[userlevel],[useraccess] FROM dbo.vfxusr"
+  "server": {
+    "port": 8006,
+    "sessionSecret": "CHANGE_ME_TO_A_LONG_RANDOM_SECRET"
+  },
+  "ldap": {
+    "url": "ldaps://ad.example.local:636",
+    "baseDN": "DC=example,DC=local",
+    "bindDN": "CN=svc-ldap,OU=Service Accounts,DC=example,DC=local",
+    "bindPassword": "CHANGE_ME",
+    "userFilter": "(sAMAccountName={{username}})",
+    "allowedGroupDN": "CN=sas3-test,OU=Groups,DC=example,DC=local",
+    "adminGroupDN": "CN=sas3-admins,OU=Groups,DC=example,DC=local"
+  },
+  "db": {
+    "user": "sa",
+    "password": "CHANGE_ME",
+    "server": "localhost",
+    "port": 1433,
+    "database": "SaS3DB",
+    "options": {
+      "encrypt": false,
+      "trustServerCertificate": true
     }
+  },
+  "rights": {
+    "fallbackRoles": [],
+    "roles": {
+      "viewer": {
+        "label": "Lesen eigener Faelle",
+        "permissions": [
+          "view_own_cases"
+        ]
+      },
+      "editor": {
+        "label": "Eigene Faelle bearbeiten",
+        "inherits": [
+          "viewer"
+        ],
+        "permissions": [
+          "create_case",
+          "edit_own_cases"
+        ]
+      },
+      "manager": {
+        "label": "Alle Faelle verwalten",
+        "inherits": [
+          "editor"
+        ],
+        "permissions": [
+          "view_all_cases",
+          "edit_all_cases"
+        ]
+      },
+      "admin": {
+        "label": "Administration",
+        "inherits": [
+          "manager"
+        ],
+        "permissions": [
+          "manage_users"
+        ]
+      }
+    },
+    "groupMappings": [
+      {
+        "groupDN": "CN=sas3-test,OU=Groups,DC=example,DC=local",
+        "roles": [
+          "editor"
+        ]
+      },
+      {
+        "groupDN": "CN=sas3-admins,OU=Groups,DC=example,DC=local",
+        "roles": [
+          "admin"
+        ]
+      }
+    ]
+  }
 }

@@ -1,43 +1,85 @@
-<!doctype html>
-<html lang="de">
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta charset="utf-8">
-    <title>User Management | SaS2</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>User Management</h1>
-            <p>Database: SaS2 | Table: dbo.vfxusr</p>
-        </div>
-        
-        <div class="content">
-            <div class="search-controls">
-                <div class="search-container">
-                    <input type="text" class="search-box" id="searchBox" placeholder="Benutzer suchen...">
-                    <button class="refresh-btn" onclick="fetchUsers()">
-                        Aktualisieren
-                    </button>
-                </div>
-                
-                <div class="stats">
-                    <div class="user-count" id="userCount">Lade Daten...</div>
-                </div>
-            </div>
-            
-            <div class="table-wrapper">
-                <div id="app">
-                    <div class="loading">
-                        <div class="spinner"></div>
-                        Lade Benutzerdaten...
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+<!DOCTYPE html>
+<html lang="de" class=" supports">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>SaS3 . Benutzerverwaltung</title>
+		<link rel="stylesheet" href="src/screen.min.css" media="all">
+	</head>
 
-    <script src="script.js"></script>
-</body>
+	<body id="p7691" class="page-7691 pagelevel-0 language-0 backendlayout-default layout-default">
+		<header id="top-header" class="pb-7">
+			<nav class="navbar navbar--meta navbar-expand navbar-dark bg-primary" id="nav-meta">
+				<div class="container meta-bar">
+					<div class="meta-left">Landesbetrieb Mobilität Rheinland-Pfalz</div>
+					<div class="meta-right">
+						<span class="meta-pill">Intranet</span>
+						<span class="meta-sep">|</span>
+						<a class="meta-link" href="#hilfe">Hilfe</a>
+						<span class="meta-sep">|</span>
+						<a class="meta-link" href="#kontakt">Kontakt</a>
+					</div>
+				</div>
+			</nav>
+			<nav class="navbar navbar-expand navbar-light bg-secondary" id="nav-logo">
+				<div class="container">
+					<div id="rlp-logo">
+						<a aria-label="Zur Startseite von: LBM Intranet">
+							<img src="src/lbm.png" width="300" height="108" class="img-fluid" alt="Logo Rheinland Pfalz die Landesregierung">
+						</a>
+					</div>
+					<div class="portal-title">
+						<span class="portal-kicker">Anmeldung</span>
+						<span class="portal-name">SaS3 Benutzerverwaltung</span>
+					</div>
+				</div>
+			</nav>
+			<div class="navbar navbar-expand navbar-light bg-white d-none d-lg-block" id="nav-main">
+				<div class="container">
+					<h2>SaS3 - Benutzerverwaltung</h2>
+				</div>
+			</div>
+		</header>
+		<div itemscope="itemscope">
+			<main role="main" itemprop="mainContentOfPage">
+				<section id="main-content" class="login-hero">
+					<div class="container hero-grid">
+						<div class="hero-copy">
+							<h1>SaS3 Anmeldung</h1>
+							<p>Melden Sie sich mit Ihren Dienstzugangsdaten an.</p>
+						</div>
+						<aside class="login-card" aria-label="Anmeldung">
+							<div class="card-header">
+								<span class="card-kicker">LBM.rlp.de Designlinie</span>
+								<h2>Anmelden</h2>
+								<p>Bitte geben Sie Ihre Zugangsdaten ein.</p>
+							</div>
+							<form class="login-form" action="/login" method="post">
+								<label for="username">Benutzername</label>
+								<input id="username" name="username" type="text" autocomplete="username" placeholder="vorname.nachname" required>
+								<label for="password">Passwort</label>
+								<input id="password" name="password" type="password" autocomplete="current-password" placeholder="********" required>
+								<div class="form-row">
+									<label class="checkbox">
+										<input type="checkbox" name="remember">
+										Angemeldet bleiben
+									</label>
+									<a class="link" href="#pw-reset">Passwort vergessen?</a>
+								</div>
+								<button type="submit" class="btn btn-primary">Anmelden</button>
+								<div class="form-footer">
+									<span>Kein Zugriff?</span>
+									<a class="link" href="#antrag">Zugang beantragen</a>
+								</div>
+							</form>
+							<div class="card-note" id="hilfe">
+								<strong>Hinweis:</strong> Zugriff erhalten nur Mitglieder der Gruppe
+								<samp>sas3-test</samp>.
+							</div>
+						</aside>
+					</div>
+				</section>
+			</main>
+		</div>
+	</body>
 </html>

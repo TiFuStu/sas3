@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="de" class="supports">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SaS3 . Schadensfaelle</title>
+    <link rel="stylesheet" href="./src/screen.min.css" media="all">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --sas3-ink: #19324a;
+            --sas3-muted: #5f7386;
+            --sas3-panel: #ffffff;
+            --sas3-panel-alt: #eff4f7;
+            --sas3-line: #d7e1e8;
+            --sas3-accent: #0e7c86;
+            --sas3-accent-soft: #d7f0f2;
+            --sas3-warn: #b95c00;
+            --sas3-bg: linear-gradient(180deg, #eef4f6 0%, #f8fbfc 100%);
+        }
+
+        body {
+            background: var(--sas3-bg);
+            color: var(--sas3-ink);
+        }
+
+        .page-shell {
+            display: grid;
+            gap: 24px;
+        }
+
+        .panel {
+            background: var(--sas3-panel);
+            border: 1px solid var(--sas3-line);
+            border-radius: 18px;
+            box-shadow: 0 16px 40px rgba(17, 39, 56, 0.08);
+        }
+
+        .panel-header {
+            padding: 20px 24px 0;
+        }
+
+        .panel-body {
+            padding: 24px;
+        }
+
+        .status-strip {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            background: var(--sas3-accent-soft);
+            color: var(--sas3-ink);
+            border-radius: 999px;
+            font-size: 0.92rem;
+            font-weight: 600;
+        }
+
+        .status-chip.warn {
+            background: #fff3e3;
+            color: var(--sas3-warn);
+        }
+
+        .workspace-grid {
+            display: grid;
+            gap: 24px;
+            grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .toolbar-actions,
+        .toolbar-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .case-list {
+            max-height: 640px;
+            overflow: auto;
+        }
+
+        .case-row {
+            cursor: pointer;
+        }
+
+        .case-row.active {
+            background: rgba(14, 124, 134, 0.1);
+        }
+
+        .case-row td {
+            vertical-align: middle;
+        }
+
+        .form-grid {
+            display: grid;
+            gap: 16px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .form-grid .full {
+            grid-column: 1 / -1;
+        }
+
+        .section-title {
+            margin: 24px 0 8px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--sas3-muted);
+        }
+
+        .required-work-grid {
+            display: grid;
+            gap: 10px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            background: var(--sas3-panel-alt);
+            border-radius: 14px;
+            padding: 16px;
+        }
+
+        .empty-state {
+            padding: 32px 20px;
+            text-align: center;
+            color: var(--sas3-muted);
+        }
+
+        textarea.form-control {
+            min-height: 140px;
+        }
+
+        .meta-note {
+            color: var(--sas3-muted);
+            font-size: 0.92rem;
+        }
+
+        @media (max-width: 992px) {
+            .workspace-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body id="p7692" class="page-7692 pagelevel-0 language-0 backendlayout-default layout-default">
+    <header id="top-header" class="pb-7">
+        <nav class="navbar navbar--meta navbar-expand navbar-dark bg-primary" id="nav-meta">
+            <div class="container meta-bar">
+                <div class="meta-left">Landesbetrieb Mobilität Rheinland-Pfalz</div>
+                <div class="meta-right">
+                    <span class="meta-pill">Intranet</span>
+                    <span class="meta-sep">|</span>
+                    <a class="meta-link" href="/overview">Übersicht</a>
+                    <span class="meta-sep">|</span>
+                    <a class="meta-link" href="/logout">Abmelden</a>
+                </div>
+            </div>
+        </nav>
+        <nav class="navbar navbar-expand navbar-light bg-secondary" id="nav-logo">
+            <div class="container">
+                <div id="rlp-logo">
+                    <a aria-label="Zur Startseite von: LBM Intranet">
+                        <img src="src/lbm.png" width="300" height="108" class="img-fluid" alt="Logo Rheinland Pfalz die Landesregierung">
+                    </a>
+                </div>
+                <div class="portal-title">
+                    <span class="portal-kicker">Verwaltung</span>
+                    <span class="portal-name">SaS3 Schadensfallverwaltung</span>
+                </div>
+            </div>
+        </nav>
+        <div class="navbar navbar-expand navbar-light bg-white d-none d-lg-block" id="nav-main">
+            <div class="container">
+                <h2>Schadensfälle anlegen und bearbeiten</h2>
+            </div>
+        </div>
+    </header>
+
+    <main role="main" class="page-section">
+        <div class="container page-shell">
+            <section class="panel">
+                <div class="panel-body">
+                    <div class="status-strip" id="status-strip">
+                        <span class="status-chip" id="user-chip">Benutzer wird geladen</span>
+                        <span class="status-chip" id="scope-chip">Sichtbereich wird geladen</span>
+                        <span class="status-chip warn" id="edit-chip">Bearbeitungsstatus wird geladen</span>
+                    </div>
+                    <div class="meta-note" id="page-message">Die Rechte werden aus den AD-Gruppen in der Konfiguration abgeleitet.</div>
+                </div>
+            </section>
+
+            <section class="workspace-grid">
+                <aside class="panel">
+                    <div class="panel-header">
+                        <div class="toolbar">
+                            <div>
+                                <h3 class="mb-1">Fallliste</h3>
+                                <p class="meta-note mb-0">Zwischen eigenen und allen Fällen wird serverseitig nach Ihren Rechten gefiltert.</p>
+                            </div>
+                            <div class="toolbar-filters">
+                                <label class="mb-0" for="scope-filter">Sicht</label>
+                                <select id="scope-filter" class="form-select">
+                                    <option value="own">Eigene Fälle</option>
+                                    <option value="all">Alle sichtbaren Fälle</option>
+                                </select>
+                                <button id="refresh-list" class="btn btn-outline-secondary" type="button">Aktualisieren</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel-body pt-3">
+                        <div class="case-list table-responsive">
+                            <table class="table align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Schaden-Nr.</th>
+                                        <th>Status</th>
+                                        <th>Verursacher</th>
+                                        <th>Bearbeiter</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="case-list-body">
+                                    <tr>
+                                        <td colspan="4" class="empty-state">Lade Schadensfälle ...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </aside>
+
+                <section class="panel">
+                    <div class="panel-header">
+                        <div class="toolbar">
+                            <div>
+                                <h3 class="mb-1">Falldetails</h3>
+                                <p class="meta-note mb-0">Neue Fälle erhalten die Schaden-Nummer automatisch beim Speichern.</p>
+                            </div>
+                            <div class="toolbar-actions">
+                                <button id="new-case" class="btn btn-primary" type="button">Neuen Fall anlegen</button>
+                                <button id="save-case" class="btn btn-success" type="button">Speichern</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <form id="damage-case-form">
+                            <input type="hidden" id="case-id">
+
+                            <div class="form-grid">
+                                <div>
+                                    <label class="form-label" for="case-number">Schaden-Nr.</label>
+                                    <input class="form-control" id="case-number" type="text" readonly value="wird beim Speichern vergeben">
+                                </div>
+                                <div>
+                                    <label class="form-label" for="status">Status</label>
+                                    <select class="form-select" id="status" data-edit-control>
+                                        <option>Neu</option>
+                                        <option>In Bearbeitung</option>
+                                        <option>Warten auf Rechnung</option>
+                                        <option>Abgeschlossen</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="subject">Betreff</label>
+                                    <input class="form-control" id="subject" type="text" data-edit-control>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="damage-date">Schadensdatum</label>
+                                    <input class="form-control" id="damage-date" type="date" data-edit-control>
+                                </div>
+                                <div class="full">
+                                    <label class="form-label" for="description">Beschreibung</label>
+                                    <textarea class="form-control" id="description" data-edit-control></textarea>
+                                </div>
+                            </div>
+
+                            <div class="section-title">Ort und Beteiligte</div>
+                            <div class="form-grid">
+                                <div>
+                                    <label class="form-label" for="street">Straße</label>
+                                    <input class="form-control" id="street" type="text" data-edit-control>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="district">Landkreis</label>
+                                    <input class="form-control" id="district" type="text" data-edit-control>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="section-from">Abschnitt von</label>
+                                    <input class="form-control" id="section-from" type="text" data-edit-control>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="section-to">Abschnitt bis</label>
+                                    <input class="form-control" id="section-to" type="text" data-edit-control>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="direction">Richtung / Gemarkung</label>
+                                    <input class="form-control" id="direction" type="text" data-edit-control>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="km-station">km / Station</label>
+                                    <input class="form-control" id="km-station" type="text" data-edit-control>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="plate-number">Kfz-Kennzeichen</label>
+                                    <input class="form-control" id="plate-number" type="text" data-edit-control>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="registration-office">Zulassungsstelle</label>
+                                    <input class="form-control" id="registration-office" type="text" data-edit-control>
+                                </div>
+                                <div class="full">
+                                    <label class="form-label" for="responsible-party">Verursacher</label>
+                                    <input class="form-control" id="responsible-party" type="text" data-edit-control>
+                                </div>
+                            </div>
+
+                            <div class="section-title">Haftung und Kosten</div>
+                            <div class="form-grid">
+                                <div>
+                                    <label class="form-label" for="insurance">Versicherung</label>
+                                    <input class="form-control" id="insurance" type="text" data-edit-control>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="invoice-to">Rechnung an</label>
+                                    <input class="form-control" id="invoice-to" type="text" data-edit-control>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="insurance-policy-number">Versicherungsschein-Nr.</label>
+                                    <input class="form-control" id="insurance-policy-number" type="text" data-edit-control>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="insurance-claim-number">Schaden-Nr. Versicherung</label>
+                                    <input class="form-control" id="insurance-claim-number" type="text" data-edit-control>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="insurance-email">E-Mail Versicherung</label>
+                                    <input class="form-control" id="insurance-email" type="email" data-edit-control>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="cash-desk">Kasse</label>
+                                    <input class="form-control" id="cash-desk" type="text" data-edit-control>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="other-costs">Sonstige Kosten</label>
+                                    <input class="form-control" id="other-costs" type="number" step="0.01" min="0" data-edit-control>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="open-claim-amount">Offene Forderung</label>
+                                    <input class="form-control" id="open-claim-amount" type="number" step="0.01" min="0" data-edit-control>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="assigned-to">Bearbeiter</label>
+                                    <input class="form-control" id="assigned-to" type="text" data-edit-control>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="follow-up-date">Wiedervorlage am</label>
+                                    <input class="form-control" id="follow-up-date" type="date" data-edit-control>
+                                </div>
+                                <div class="full form-check mt-2">
+                                    <input class="form-check-input" id="costs-complete" type="checkbox" data-edit-control>
+                                    <label class="form-check-label" for="costs-complete">Kosten komplett erfasst</label>
+                                </div>
+                            </div>
+
+                            <div class="section-title">Erforderliche Arbeiten</div>
+                            <div class="required-work-grid">
+                                <div class="form-check"><input class="form-check-input required-work" id="work-vehicle" type="checkbox" value="Verwaltungsfahrzeug instandsetzen" data-edit-control><label class="form-check-label" for="work-vehicle">Verwaltungsfahrzeug instandsetzen</label></div>
+                                <div class="form-check"><input class="form-check-input required-work" id="work-barrier" type="checkbox" value="Absperrmaßnahmen" data-edit-control><label class="form-check-label" for="work-barrier">Absperrmaßnahmen</label></div>
+                                <div class="form-check"><input class="form-check-input required-work" id="work-cleaning" type="checkbox" value="Reinigung der Fahrbahn" data-edit-control><label class="form-check-label" for="work-cleaning">Reinigung der Fahrbahn</label></div>
+                                <div class="form-check"><input class="form-check-input required-work" id="work-oil" type="checkbox" value="Beseitigung einer Ölspur" data-edit-control><label class="form-check-label" for="work-oil">Beseitigung einer Ölspur</label></div>
+                                <div class="form-check"><input class="form-check-input required-work" id="work-tidy" type="checkbox" value="Aufräumarbeiten" data-edit-control><label class="form-check-label" for="work-tidy">Aufräumarbeiten</label></div>
+                                <div class="form-check"><input class="form-check-input required-work" id="work-replace" type="checkbox" value="Ersatz von Verkehrseinrichtungen" data-edit-control><label class="form-check-label" for="work-replace">Ersatz von Verkehrseinrichtungen</label></div>
+                                <div class="form-check"><input class="form-check-input required-work" id="work-repair" type="checkbox" value="Reparatur von Verkehrseinrichtungen" data-edit-control><label class="form-check-label" for="work-repair">Reparatur von Verkehrseinrichtungen</label></div>
+                                <div class="form-check"><input class="form-check-input required-work" id="work-green" type="checkbox" value="Instandsetzung der Grünanlage" data-edit-control><label class="form-check-label" for="work-green">Instandsetzung der Grünanlage</label></div>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+            </section>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/src/create-damage-case.js"></script>
+</body>
+</html>

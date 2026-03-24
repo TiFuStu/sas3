@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="de" class="supports">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <title>SaS3 . Uebersicht</title>
+    <link rel="stylesheet" href="src/screen.min.css" media="all">
+  </head>
+  <body id="p7691" class="page-7691 pagelevel-0 language-0 backendlayout-default layout-default">
+    <header id="top-header" class="pb-7">
+      <nav class="navbar navbar--meta navbar-expand navbar-dark bg-primary" id="nav-meta">
+        <div class="container meta-bar">
+          <div class="meta-left">Landesbetrieb Mobilitaet Rheinland-Pfalz</div>
+          <div class="meta-right">
+            <span class="meta-pill">Intranet</span>
+            <span class="meta-sep">|</span>
+            <a class="meta-link" href="/logout">Abmelden</a>
+            <span class="meta-sep">|</span>
+            <a class="meta-link" href="#kontakt">Kontakt</a>
+          </div>
+        </div>
+      </nav>
+      <nav class="navbar navbar-expand navbar-light bg-secondary" id="nav-logo">
+        <div class="container">
+          <div id="rlp-logo">
+            <a aria-label="Zur Startseite von: LBM Intranet">
+              <img src="src/lbm.png" width="300" height="108" class="img-fluid" alt="Logo Rheinland Pfalz die Landesregierung">
+            </a>
+          </div>
+          <div class="portal-title">
+            <span class="portal-kicker">Uebersicht</span>
+            <span class="portal-name">SaS3 Benutzerverwaltung</span>
+          </div>
+        </div>
+      </nav>
+      <div class="navbar navbar-expand navbar-light bg-white d-none d-lg-block" id="nav-main">
+        <div class="container">
+          <h2>SaS3 - Uebersicht</h2>
+        </div>
+      </div>
+    </header>
+    <main role="main" class="page-section">
+      <div class="container">
+        <h1>Willkommen</h1>
+        <p>Sie sind erfolgreich angemeldet und haben Zugriff auf SaS3.</p>
+        <div class="overview-card">
+          <h3>Naechste Schritte</h3>
+          <ul>
+            <li id="admin-link-users" style="display:none;"><a href="/users">Benutzer verwalten</a></li>
+            <li><a href="/create-damage-case">Neuen Schaden erfassen</a></li>
+            <li>Rollen und Rechte pruefen</li>
+            <li>Protokolle einsehen</li>
+          </ul>
+        </div>
+      </div>
+    </main>
+    <script>
+      fetch('/api/me')
+        .then(res => {
+          if (res.status === 401) {
+             window.location.href = '/';
+             return;
+          }
+          return res.json();
+        })
+        .then(user => {
+          if (user && user.isAdmin) {
+             document.getElementById('admin-link-users').style.display = 'list-item';
+          }
+        })
+        .catch(err => console.error("Could not fetch user info", err));
+    </script>
+  </body>
+</html>
