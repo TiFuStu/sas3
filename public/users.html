@@ -1,145 +1,116 @@
 <!DOCTYPE html>
-<html lang="de" class="supports">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SaS3 . Benutzerübersicht</title>
-    <link rel="stylesheet" href="src/screen.min.css" media="all">
-    <style>
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
-      }
-      th, td {
-        padding: 10px;
-        border: 1px solid #ddd;
-        text-align: left;
-      }
-      th {
-        background-color: #f4f4f4;
-      }
-      .error {
-        color: red;
-        font-weight: bold;
-      }
-      #users-table {
-        display: none;
-      }
-    </style>
-  </head>
-  <body id="p7691" class="page-7691 pagelevel-0 language-0 backendlayout-default layout-default">
-    <header id="top-header" class="pb-7">
-      <nav class="navbar navbar--meta navbar-expand navbar-dark bg-primary" id="nav-meta">
-        <div class="container meta-bar">
-          <div class="meta-left">Landesbetrieb Mobilität Rheinland-Pfalz</div>
-          <div class="meta-right">
-            <span class="meta-pill">Intranet</span>
-            <span class="meta-sep">|</span>
-             <a class="meta-link" href="/logout">Abmelden</a>
-            <span class="meta-sep">|</span>
-            <a class="meta-link" href="/overview">Zurück zur Übersicht</a>
-          </div>
-        </div>
-      </nav>
-      <nav class="navbar navbar-expand navbar-light bg-secondary" id="nav-logo">
-        <div class="container">
-          <div id="rlp-logo">
-            <a aria-label="Zur Startseite von: LBM Intranet">
-              <img src="src/lbm.png" width="300" height="108" class="img-fluid" alt="Logo Rheinland Pfalz die Landesregierung">
-            </a>
-          </div>
-          <div class="portal-title">
-            <span class="portal-kicker">Verwaltung</span>
-            <span class="portal-name">SaS3 Benutzerübersicht</span>
-          </div>
-        </div>
-      </nav>
-      <div class="navbar navbar-expand navbar-light bg-white d-none d-lg-block" id="nav-main">
-        <div class="container">
-          <h2>Benutzerliste</h2>
-        </div>
-      </div>
-    </header>
-    <main role="main" class="page-section">
-      <div class="container">
-        <h1>Alle Benutzer</h1>
-        <div id="loading">Lade Benutzerdaten...</div>
-        <div id="error-message" class="error"></div>
-        <table id="users-table">
+<html lang="de">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SaS3 - Benutzerverwaltung | LBM Rheinland-Pfalz</title>
+  <link rel="stylesheet" href="src/lbm.css">
+  <style>
+    .users-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .users-table th,
+    .users-table td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--lbm-gray-light);
+    }
+
+    .users-table th {
+      font-weight: bold;
+      color: var(--lbm-text);
+    }
+
+    .role-badge {
+      background: var(--lbm-gray-light);
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      display: inline-block;
+      margin: 0.1rem;
+      border: 1px solid var(--lbm-gray);
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="logo-container">
+      <img src="src/lbm.png" alt="LBM Logo">
+      <span class="header-title">SaS3 - Benutzerverwaltung</span>
+    </div>
+    <div class="user-menu">
+      <a href="/overview" class="btn btn-secondary">Zurück zur Übersicht</a>
+      <a href="/logout" class="logout-btn">Abmelden</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="flex justify-between align-center mb-2">
+      <h1>Benutzerverwaltung</h1>
+    </div>
+
+    <div class="card">
+      <div id="loading" class="text-center">Lade Benutzerdaten...</div>
+      <div id="error-message" class="text-center" style="color: #E30613; display: none;"></div>
+
+      <div style="overflow-x: auto;">
+        <table class="users-table" id="users-table" style="display: none;">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Vorname</th>
-              <th>Nachname</th>
-              <th>Kürzel</th>
+              <th>ID (AD)</th>
+              <th>Name</th>
+              <th>Dienststelle</th>
               <th>E-Mail</th>
               <th>Rollen</th>
-              <th>Berechtigungen</th>
             </tr>
           </thead>
           <tbody id="users-body">
-            <!-- User rows will be inserted here -->
           </tbody>
         </table>
-      </div> 
-    </main>
-    <script>
-      function formatList(values, fallback) {
-        if (!Array.isArray(values) || values.length === 0) {
-          return fallback;
-        }
+      </div>
+    </div>
+  </div>
 
-        return values.join(', ');
-      }
+  <script>
+    async function loadUsers() {
+      try {
+        const res = await fetch('/api/users');
+        if (!res.ok) throw new Error('Netzwerkfehler');
+        const users = await res.json();
 
-      async function loadUsers() {
-        try {
-          const meResponse = await fetch('/api/me');
-           if (meResponse.status === 401) {
-             window.location.href = '/';
-             return;
-          }
-           
-          const response = await fetch('/api/users');
-          if (!response.ok) {
-            throw new Error('Netzwerkfehler beim Laden der Benutzer');
-          }
-          const users = await response.json();
-          
-          const tbody = document.getElementById('users-body');
-          const table = document.getElementById('users-table');
-          const loading = document.getElementById('loading');
-          
-          tbody.innerHTML = '';
-          
-          users.forEach(user => {
-            const tr = document.createElement('tr');
-            
-            // Note: DB columns are uppercase based on SQL schema
-            tr.innerHTML = `
-              <td>${user.BENID || ''}</td>
-              <td>${user.BENVORNAME || ''}</td>
-              <td>${user.BENNACHNAME || ''}</td>
-              <td>${user.BENKUERZEL || ''}</td>
-              <td>${user.BENMAIL || ''}</td>
-              <td>${formatList(user.roles, 'keine Zuordnung')}</td>
-              <td>${formatList(user.permissions, 'keine Berechtigung')}</td>
-            `;
-            tbody.appendChild(tr);
-          });
-          
-          loading.style.display = 'none';
-          table.style.display = 'table';
-          
-        } catch (err) {
-          console.error(err);
-          document.getElementById('loading').style.display = 'none';
-          document.getElementById('error-message').innerText = 'Fehler beim Laden der Benutzer: ' + err.message;
-        }
+        const table = document.getElementById('users-table');
+        const tbody = document.getElementById('users-body');
+
+        users.forEach(u => {
+          const rolesHtml = (u.roles || []).map(r => `<span class="role-badge">${r}</span>`).join('') || '-';
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+                        <td>${u.BENID || ''}</td>
+                        <td>${u.BENVORNAME || ''} ${u.BENNACHNAME || ''}</td>
+                        <td>${u.BENDIENSTSTELLE || '-'}</td>
+                        <td>${u.BENMAIL || '-'}</td>
+                        <td>${rolesHtml}</td>
+                    `;
+          tbody.appendChild(tr);
+        });
+
+        document.getElementById('loading').style.display = 'none';
+        table.style.display = 'table';
+      } catch (err) {
+        document.getElementById('loading').style.display = 'none';
+        const el = document.getElementById('error-message');
+        el.textContent = 'Fehler beim Laden: ' + err.message;
+        el.style.display = 'block';
       }
-      
-      document.addEventListener('DOMContentLoaded', loadUsers);
-    </script>
-  </body>
+    }
+
+    document.addEventListener('DOMContentLoaded', loadUsers);
+  </script>
+</body>
+
 </html>

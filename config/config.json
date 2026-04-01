@@ -3,25 +3,62 @@
     "port": 8006,
     "sessionSecret": "CHANGE_ME_TO_A_LONG_RANDOM_SECRET"
   },
+  "testUsers": [
+    {
+      "username": "dummy-admin",
+      "password": "password",
+      "displayName": "Dummy Admin",
+      "email": "admin@example.com",
+      "department": "IT",
+      "groups": [
+        "CN=sas3-admins,OU=Groups,DC=lsv,DC=intra"
+      ]
+    },
+    {
+      "username": "dummy-erfasser",
+      "password": "password",
+      "displayName": "Dummy Erfasser",
+      "email": "erfasser@example.com",
+      "department": "Strassenbau",
+      "groups": [
+        "CN=sas3-erfasser,OU=Groups,DC=lsv,DC=intra"
+      ]
+    },
+    {
+      "username": "dummy-bearbeiter",
+      "password": "password",
+      "displayName": "Dummy Bearbeiter",
+      "email": "bearbeiter@example.com",
+      "department": "Schadensteam",
+      "groups": [
+        "CN=sas3-bearbeiten,OU=Groups,DC=lsv,DC=intra"
+      ]
+    },
+    {
+      "username": "dummy-leitung",
+      "password": "password",
+      "displayName": "Dummy Leitung",
+      "email": "leitung@example.com",
+      "department": "Leitung",
+      "groups": [
+        "CN=sas3-leitung,OU=Groups,DC=lsv,DC=intra"
+      ]
+    }
+  ],
   "ldap": {
-    "url": "ldaps://ad.example.local:636",
-    "baseDN": "DC=example,DC=local",
-    "bindDN": "CN=svc-ldap,OU=Service Accounts,DC=example,DC=local",
-    "bindPassword": "CHANGE_ME",
-    "userFilter": "(sAMAccountName={{username}})",
-    "allowedGroupDN": "CN=sas3-test,OU=Groups,DC=example,DC=local",
-    "adminGroupDN": "CN=sas3-admins,OU=Groups,DC=example,DC=local"
+    "realm": "NTLASVDV",
+    "username": "extranetservice",
+    "password": "password",
+    "userFilter": "(&(sAMAccountName={{username}})(objectclass=user)(!(userAccountControl:1.2.840.113556.1.4.804:=8454242))(!(memberOf:1.2.840.113556.1.4.1941:=CN=,OU=Domain Controllers,DC=lsv,DC=intra)))",
+    "allowedGroupDN": "CN=sas3-erfasser,OU=Groups,DC=lsv,DC=intra",
+    "adminGroupDN": "CN=sas3-admins,OU=Groups,DC=lsv,DC=intra"
   },
   "db": {
-    "user": "sa",
-    "password": "CHANGE_ME",
-    "server": "localhost",
-    "port": 1433,
-    "database": "SaS3DB",
-    "options": {
-      "encrypt": false,
-      "trustServerCertificate": true
-    }
+    "user": "postgres",
+    "password": "password",
+    "host": "localhost",
+    "port": 5432,
+    "database": "sas3db"
   },
   "rights": {
     "fallbackRoles": [],
@@ -32,8 +69,8 @@
           "view_own_cases"
         ]
       },
-      "editor": {
-        "label": "Eigene Faelle bearbeiten",
+      "erfasser": {
+        "label": "Fälle erfassen (Erfasser)",
         "inherits": [
           "viewer"
         ],
@@ -42,35 +79,59 @@
           "edit_own_cases"
         ]
       },
-      "manager": {
-        "label": "Alle Faelle verwalten",
+      "bearbeiter": {
+        "label": "Fälle bearbeiten (Team)",
         "inherits": [
-          "editor"
+          "viewer"
         ],
         "permissions": [
-          "view_all_cases",
-          "edit_all_cases"
+          "view_team_cases",
+          "edit_team_cases",
+          "forward_to_leitung"
+        ]
+      },
+      "leitung": {
+        "label": "Fälle prüfen (Leitung)",
+        "inherits": [
+          "bearbeiter"
+        ],
+        "permissions": [
+          "view_leitung_cases",
+          "approve_case"
         ]
       },
       "admin": {
         "label": "Administration",
         "inherits": [
-          "manager"
+          "leitung"
         ],
         "permissions": [
-          "manage_users"
+          "manage_users",
+          "view_all_cases"
         ]
       }
     },
     "groupMappings": [
       {
-        "groupDN": "CN=sas3-test,OU=Groups,DC=example,DC=local",
+        "groupName": "sas3-erfasser",
         "roles": [
-          "editor"
+          "erfasser"
         ]
       },
       {
-        "groupDN": "CN=sas3-admins,OU=Groups,DC=example,DC=local",
+        "groupName": "sas3-bearbeiten",
+        "roles": [
+          "bearbeiter"
+        ]
+      },
+      {
+        "groupName": "sas3-leitung",
+        "roles": [
+          "leitung"
+        ]
+      },
+      {
+        "groupName": "sas3-admins",
         "roles": [
           "admin"
         ]

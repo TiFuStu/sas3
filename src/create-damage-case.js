@@ -30,6 +30,7 @@ const elements = {
     plateNumber: document.getElementById("plate-number"),
     registrationOffice: document.getElementById("registration-office"),
     responsibleParty: document.getElementById("responsible-party"),
+    responsiblePartyAddress: document.getElementById("responsible-party-address"),
     insurance: document.getElementById("insurance"),
     invoiceTo: document.getElementById("invoice-to"),
     insurancePolicyNumber: document.getElementById("insurance-policy-number"),
@@ -40,7 +41,9 @@ const elements = {
     openClaimAmount: document.getElementById("open-claim-amount"),
     assignedTo: document.getElementById("assigned-to"),
     followUpDate: document.getElementById("follow-up-date"),
-    costsComplete: document.getElementById("costs-complete")
+    costsComplete: document.getElementById("costs-complete"),
+    forwardCase: document.getElementById("forward-case"),
+    approveCase: document.getElementById("approve-case")
 };
 
 function getRequiredWorkInputs() {
@@ -80,11 +83,13 @@ function updateStatusChips() {
     elements.userChip.textContent = `${state.currentUser?.displayName || state.currentUser?.username || "Unbekannt"} · ${state.currentUser?.roleLabels?.join(", ") || "keine Rolle"}`;
     elements.scopeChip.textContent = state.appliedScope === "all" ? "Sicht: alle sichtbaren Fälle" : "Sicht: eigene Fälle";
     elements.editChip.textContent = canEditCurrent ? "Bearbeitung möglich" : "Nur lesender Zugriff";
+    elements.editChip.style.display = "inline-block";
     elements.editChip.classList.toggle("warn", !canEditCurrent);
 }
 
 function setMessage(message) {
     elements.pageMessage.textContent = message;
+    elements.pageMessage.style.display = message ? "block" : "none";
 }
 
 function setFormDisabled(disabled) {
@@ -110,6 +115,7 @@ function clearForm() {
     elements.plateNumber.value = "";
     elements.registrationOffice.value = "";
     elements.responsibleParty.value = "";
+    elements.responsiblePartyAddress.value = "";
     elements.insurance.value = "";
     elements.invoiceTo.value = "";
     elements.insurancePolicyNumber.value = "";
@@ -118,12 +124,13 @@ function clearForm() {
     elements.cashDesk.value = "";
     elements.otherCosts.value = "0.00";
     elements.openClaimAmount.value = "0.00";
-    elements.assignedTo.value = state.currentUser?.displayName || state.currentUser?.username || "";
+    elements.assignedTo.value = state.currentUser?.kurzel || state.currentUser?.username || "";
     elements.followUpDate.value = "";
     elements.costsComplete.checked = false;
     getRequiredWorkInputs().forEach((input) => {
         input.checked = false;
     });
+    updateActionButtons(null);
 }
 
 function collectPayload() {
@@ -141,6 +148,7 @@ function collectPayload() {
         plateNumber: elements.plateNumber.value,
         registrationOffice: elements.registrationOffice.value,
         responsibleParty: elements.responsibleParty.value,
+        responsiblePartyAddress: elements.responsiblePartyAddress.value,
         insurance: elements.insurance.value,
         invoiceTo: elements.invoiceTo.value,
         insurancePolicyNumber: elements.insurancePolicyNumber.value,
@@ -152,13 +160,15 @@ function collectPayload() {
         assignedTo: elements.assignedTo.value,
         followUpDate: elements.followUpDate.value,
         costsComplete: elements.costsComplete.checked,
-        requiredWorks: getRequiredWorkInputs().filter((input) => input.checked).map((input) => input.value)
+        requiredWorks: getRequiredWorkInputs()
+            .filter((input) => input.checked)
+            .map((input) => input.value)
     };
 }
 
 function populateForm(damageCase) {
     elements.caseId.value = damageCase.id || "";
-    elements.caseNumber.value = damageCase.caseNumber || "wird beim Speichern vergeben";
+    elements.caseNumber.value = damageCase.caseNumber || "";
     elements.status.value = damageCase.status || "Neu";
     elements.subject.value = damageCase.subject || "";
     elements.damageDate.value = damageCase.damageDate || "";
@@ -172,6 +182,7 @@ function populateForm(damageCase) {
     elements.plateNumber.value = damageCase.plateNumber || "";
     elements.registrationOffice.value = damageCase.registrationOffice || "";
     elements.responsibleParty.value = damageCase.responsibleParty || "";
+    elements.responsiblePartyAddress.value = damageCase.responsiblePartyAddress || "";
     elements.insurance.value = damageCase.insurance || "";
     elements.invoiceTo.value = damageCase.invoiceTo || "";
     elements.insurancePolicyNumber.value = damageCase.insurancePolicyNumber || "";
@@ -184,37 +195,49 @@ function populateForm(damageCase) {
     elements.followUpDate.value = damageCase.followUpDate || "";
     elements.costsComplete.checked = Boolean(damageCase.costsComplete);
 
+    updateActionButtons(damageCase);
+    
     const requiredWorks = Array.isArray(damageCase.requiredWorks) ? damageCase.requiredWorks : [];
     getRequiredWorkInputs().forEach((input) => {
         input.checked = requiredWorks.includes(input.value);
     });
+
+    setFormDisabled(!damageCase.canEdit);
 }
 
-function renderCaseList() {
-    if (!state.cases.length) {
-        elements.caseListBody.innerHTML = '<tr><td colspan="4" class="empty-state">Keine Fälle im aktuellen Sichtbereich gefunden.</td></tr>';
+function updateActionButtons(damageCase) {
+    if (!damageCase) {
+        elements.forwardCase.style.display = "none";
+        elements.approveCase.style.display = "none";
         return;
     }
 
-    elements.caseListBody.innerHTML = state.cases.map((damageCase) => {
-        const isActive = damageCase.id === state.currentCase?.id;
-        return `
-            <tr class="case-row ${isActive ? "active" : ""}" data-case-id="${damageCase.id}">
-                <td>
-                    <strong>${damageCase.caseNumber || "ohne Nummer"}</strong><br>
-                    <small class="text-muted">${damageCase.damageDate || "kein Datum"}</small>
-                </td>
-                <td>${damageCase.status || "Neu"}</td>
-                <td>${damageCase.responsibleParty || "unbekannt"}</td>
-                <td>${damageCase.assignedTo || damageCase.createdBy || "-"}</td>
-            </tr>
-        `;
-    }).join("");
+    const perms = state.currentUser?.permissions || [];
+    elements.forwardCase.style.display = (perms.includes("forward_to_leitung") && damageCase.status === "Team") ? "inline-block" : "none";
+    elements.approveCase.style.display = (perms.includes("approve_case") && damageCase.status === "Leitung") ? "inline-block" : "none";
+}
 
-    document.querySelectorAll(".case-row").forEach((row) => {
+function renderCaseList() {
+    elements.caseListBody.innerHTML = "";
+
+    if (state.cases.length === 0) {
+        elements.caseListBody.innerHTML = '<div class="empty-state">Keine Fälle gefunden</div>';
+        return;
+    }
+
+    state.cases.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = `case-item ${state.currentCase?.id === item.id ? "active" : ""}`;
+        row.dataset.caseId = item.id;
+        row.innerHTML = `
+            <div class="case-item-title">${item.caseNumber} - ${item.subject}</div>
+            <div class="case-item-meta">${item.status} | ${item.street || "Keine Straße"}</div>
+        `;
+
         row.addEventListener("click", async () => {
             await loadCase(row.dataset.caseId);
         });
+        elements.caseListBody.appendChild(row);
     });
 }
 
@@ -234,12 +257,12 @@ async function loadCaseList() {
     if (state.currentCase) {
         const currentCase = state.cases.find((item) => item.id === state.currentCase.id);
         if (currentCase) {
-            await loadCase(currentCase.id);
+            // Already loaded
             return;
         }
     }
 
-    if (!state.currentCase && state.cases.length) {
+    if (!state.currentCase && state.cases.length > 0) {
         await loadCase(state.cases[0].id);
     }
 }
@@ -252,19 +275,26 @@ async function loadCase(caseId) {
 
     state.currentCase = damageCase;
     populateForm(damageCase);
-    setFormDisabled(!damageCase.canEdit);
     updateStatusChips();
     renderCaseList();
-    setMessage(`Fall ${damageCase.caseNumber} geladen. Eigentümer: ${damageCase.createdBy || "unbekannt"}.`);
+    setMessage(`Fall ${damageCase.caseNumber} geladen.`);
 }
 
-function startNewCase() {
+async function startNewCase() {
     state.currentCase = null;
     clearForm();
     setFormDisabled(!state.currentUser?.permissions?.includes("create_case"));
     updateStatusChips();
     renderCaseList();
-    setMessage("Neuer Schadensfall vorbereitet. Die Schaden-Nummer wird beim Speichern vergeben.");
+
+    try {
+        const data = await apiFetch("/api/next-case-number");
+        elements.caseNumber.value = data.nextNumber || "wird automatisch vergeben";
+        setMessage(`Neuer Schadensfall vorbereitet. Reservierte Nummer: ${data.nextNumber}.`);
+    } catch (error) {
+        console.error("Could not fetch next case number", error);
+        setMessage("Neuer Schadensfall vorbereitet.");
+    }
 }
 
 async function saveCase() {
@@ -280,10 +310,44 @@ async function saveCase() {
 
     state.currentCase = savedCase;
     populateForm(savedCase);
-    setFormDisabled(!savedCase.canEdit);
-    updateStatusChips();
-    setMessage(`Fall ${savedCase.caseNumber} wurde erfolgreich gespeichert.`);
     await loadCaseList();
+    setMessage(`Fall ${savedCase.caseNumber} wurde erfolgreich gespeichert.`);
+}
+
+async function forwardCase() {
+    const caseId = elements.caseId.value;
+    if (!caseId) return;
+
+    const payload = collectPayload();
+    payload.forwardToLeitung = true;
+
+    const savedCase = await apiFetch(`/api/damage-cases/${encodeURIComponent(caseId)}`, {
+        method: "PUT",
+        body: JSON.stringify(payload)
+    });
+
+    state.currentCase = null;
+    clearForm();
+    await loadCaseList();
+    setMessage(`Fall ${savedCase.caseNumber} wurde an Leitung weitergeleitet.`);
+}
+
+async function approveCase() {
+    const caseId = elements.caseId.value;
+    if (!caseId) return;
+
+    const payload = collectPayload();
+    payload.approve = true;
+
+    const savedCase = await apiFetch(`/api/damage-cases/${encodeURIComponent(caseId)}`, {
+        method: "PUT",
+        body: JSON.stringify(payload)
+    });
+
+    state.currentCase = null;
+    clearForm();
+    await loadCaseList();
+    setMessage(`Fall ${savedCase.caseNumber} wurde freigegeben.`);
 }
 
 async function initialisePage() {
@@ -293,19 +357,25 @@ async function initialisePage() {
             return;
         }
 
-        const canViewAll = state.currentUser.permissions.includes("view_all_cases");
+        const canViewAll = state.currentUser.permissions.includes("view_all_cases") || state.currentUser.permissions.includes("view_team_cases");
         const canCreate = state.currentUser.permissions.includes("create_case");
 
         if (!canViewAll) {
             elements.scopeFilter.innerHTML = '<option value="own">Eigene Fälle</option>';
+        } else {
+            elements.scopeFilter.innerHTML = `
+                <option value="own">Eigene Fälle</option>
+                <option value="department">Abteilung</option>
+                <option value="all">Alle</option>
+            `;
         }
 
         elements.newCase.hidden = !canCreate;
-        startNewCase();
+        await startNewCase();
         await loadCaseList();
     } catch (error) {
         setMessage(`Fehler beim Laden der Seite: ${error.message}`);
-        elements.caseListBody.innerHTML = `<tr><td colspan="4" class="empty-state">${error.message}</td></tr>`;
+        elements.caseListBody.innerHTML = `<div class="empty-state">${error.message}</div>`;
         setFormDisabled(true);
     }
 }
@@ -318,9 +388,40 @@ async function withUiFeedback(action) {
     }
 }
 
+// Event Listeners
 elements.refreshList.addEventListener("click", () => withUiFeedback(loadCaseList));
 elements.scopeFilter.addEventListener("change", () => withUiFeedback(loadCaseList));
 elements.newCase.addEventListener("click", startNewCase);
 elements.saveCase.addEventListener("click", () => withUiFeedback(saveCase));
+elements.forwardCase.addEventListener("click", () => withUiFeedback(forwardCase));
+elements.approveCase.addEventListener("click", () => withUiFeedback(approveCase));
+
+elements.plateNumber.addEventListener("blur", async () => {
+    const plate = elements.plateNumber.value;
+    if (!plate) return;
+    try {
+        const data = await apiFetch(`/api/lookup/vehicle?plate=${encodeURIComponent(plate)}`);
+        if (data) {
+            elements.insurance.value = data.insurance || "";
+            elements.registrationOffice.value = data.registrationOffice || "";
+            elements.insuranceEmail.value = data.insuranceEmail || "";
+        }
+    } catch (e) {
+        console.warn("Lookup failed", e);
+    }
+});
+
+elements.street.addEventListener("blur", async () => {
+    const street = elements.street.value;
+    if (!street) return;
+    try {
+        const data = await apiFetch(`/api/lookup/street?street=${encodeURIComponent(street)}`);
+        if (data) {
+            elements.district.value = data.district || "";
+        }
+    } catch (e) {
+        console.warn("Lookup failed", e);
+    }
+});
 
 document.addEventListener("DOMContentLoaded", initialisePage);

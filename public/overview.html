@@ -1,74 +1,235 @@
 <!DOCTYPE html>
-<html lang="de" class="supports">
-  <head>
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-    <meta charset="utf-8">
-    <title>SaS3 . Uebersicht</title>
-    <link rel="stylesheet" href="src/screen.min.css" media="all">
-  </head>
-  <body id="p7691" class="page-7691 pagelevel-0 language-0 backendlayout-default layout-default">
-    <header id="top-header" class="pb-7">
-      <nav class="navbar navbar--meta navbar-expand navbar-dark bg-primary" id="nav-meta">
-        <div class="container meta-bar">
-          <div class="meta-left">Landesbetrieb Mobilitaet Rheinland-Pfalz</div>
-          <div class="meta-right">
-            <span class="meta-pill">Intranet</span>
-            <span class="meta-sep">|</span>
-            <a class="meta-link" href="/logout">Abmelden</a>
-            <span class="meta-sep">|</span>
-            <a class="meta-link" href="#kontakt">Kontakt</a>
-          </div>
-        </div>
-      </nav>
-      <nav class="navbar navbar-expand navbar-light bg-secondary" id="nav-logo">
-        <div class="container">
-          <div id="rlp-logo">
-            <a aria-label="Zur Startseite von: LBM Intranet">
-              <img src="src/lbm.png" width="300" height="108" class="img-fluid" alt="Logo Rheinland Pfalz die Landesregierung">
-            </a>
-          </div>
-          <div class="portal-title">
-            <span class="portal-kicker">Uebersicht</span>
-            <span class="portal-name">SaS3 Benutzerverwaltung</span>
-          </div>
-        </div>
-      </nav>
-      <div class="navbar navbar-expand navbar-light bg-white d-none d-lg-block" id="nav-main">
-        <div class="container">
-          <h2>SaS3 - Uebersicht</h2>
-        </div>
+<html lang="de">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SaS3 - Übersicht | LBM Rheinland-Pfalz</title>
+  <link rel="stylesheet" href="src/lbm.css">
+  <style>
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+
+    .filters {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .filter-btn {
+      background-color: var(--lbm-gray-light);
+      border: 1px solid var(--lbm-gray);
+      padding: 0.5rem 1rem;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .filter-btn.active {
+      background-color: var(--lbm-blue);
+      color: var(--lbm-white);
+      border-color: var(--lbm-blue);
+    }
+
+    .cases-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--lbm-white);
+      box-shadow: var(--box-shadow);
+      border-radius: var(--border-radius);
+      overflow: hidden;
+    }
+
+    .cases-table th,
+    .cases-table td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--lbm-gray-light);
+    }
+
+    .cases-table th {
+      background-color: var(--lbm-gray-light);
+      font-weight: bold;
+      color: var(--lbm-text);
+    }
+
+    .cases-table tr:hover {
+      background-color: #fcfcfc;
+    }
+
+    .status-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: bold;
+    }
+
+    .status-neu {
+      background-color: #e3f2fd;
+      color: #1976d2;
+    }
+
+    .status-bearbeitung {
+      background-color: #fff3e0;
+      color: #f57c00;
+    }
+
+    .status-abgeschlossen {
+      background-color: #e8f5e9;
+      color: #388e3c;
+    }
+
+    #admin-link-users {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="logo-container">
+      <img src="src/lbm.png" alt="LBM Logo">
+      <span class="header-title">SaS3 - Schadensabwicklungssystem</span>
+    </div>
+    <div class="user-menu">
+      <span class="user-info" id="user-name"></span>
+      <a href="/logout" class="logout-btn">Abmelden</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="dashboard-header">
+      <h1>Fälle Übersicht</h1>
+      <div style="display: flex; gap: 1rem;">
+        <a href="/users" class="btn btn-secondary" id="admin-link-users">Benutzerverwaltung</a>
+        <a href="/create-damage-case" class="btn btn-primary" id="create-case-btn" style="display: none;">Neuer Fall</a>
       </div>
-    </header>
-    <main role="main" class="page-section">
-      <div class="container">
-        <h1>Willkommen</h1>
-        <p>Sie sind erfolgreich angemeldet und haben Zugriff auf SaS3.</p>
-        <div class="overview-card">
-          <h3>Naechste Schritte</h3>
-          <ul>
-            <li id="admin-link-users" style="display:none;"><a href="/users">Benutzer verwalten</a></li>
-            <li><a href="/create-damage-case">Neuen Schaden erfassen</a></li>
-            <li>Rollen und Rechte pruefen</li>
-            <li>Protokolle einsehen</li>
-          </ul>
-        </div>
+    </div>
+
+    <div class="card">
+      <div class="filters" id="scope-filters">
+        <button class="filter-btn active" data-scope="own">Meine Fälle</button>
+        <button class="filter-btn" data-scope="department" id="filter-dept" style="display: none;">Meine
+          Dienststelle</button>
+        <button class="filter-btn" data-scope="all" id="filter-all" style="display: none;">Alle Fälle</button>
       </div>
-    </main>
-    <script>
-      fetch('/api/me')
-        .then(res => {
-          if (res.status === 401) {
-             window.location.href = '/';
-             return;
-          }
-          return res.json();
-        })
-        .then(user => {
-          if (user && user.isAdmin) {
-             document.getElementById('admin-link-users').style.display = 'list-item';
-          }
-        })
-        .catch(err => console.error("Could not fetch user info", err));
-    </script>
-  </body>
+
+      <table class="cases-table">
+        <thead>
+          <tr>
+            <th>Fallnummer</th>
+            <th>Betreff</th>
+            <th>Dienststelle</th>
+            <th>Ersteller</th>
+            <th>Datum</th>
+            <th>Status</th>
+            <th>Aktion</th>
+          </tr>
+        </thead>
+        <tbody id="cases-body">
+          <tr>
+            <td colspan="7" class="text-center">Daten werden geladen...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+
+    async function init() {
+      try {
+        const res = await fetch('/api/me');
+        if (res.status === 401) {
+          window.location.href = '/';
+          return;
+        }
+        currentUser = await res.json();
+        document.getElementById('user-name').textContent = currentUser.displayName;
+
+        if (currentUser.isAdmin) {
+          document.getElementById('admin-link-users').style.display = 'inline-block';
+        }
+
+        loadCases('own');
+      } catch (err) {
+        console.error("Could not fetch user info", err);
+      }
+    }
+
+    async function loadCases(scope) {
+      try {
+        // Update active button
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        const btn = document.querySelector(`.filter-btn[data-scope="${scope}"]`);
+        if (btn) btn.classList.add('active');
+
+        const res = await fetch(`/api/damage-cases?scope=${scope}`);
+        if (!res.ok) throw new Error("Failed to load cases");
+        const data = await res.json();
+
+        // Show/hide filter buttons based on response
+        if (data.canViewAll) {
+          document.getElementById('filter-dept').style.display = 'inline-block';
+          document.getElementById('filter-all').style.display = 'inline-block';
+        }
+        if (data.canCreate) {
+          document.getElementById('create-case-btn').style.display = 'inline-block';
+        }
+
+        renderCases(data.items);
+      } catch (err) {
+        console.error(err);
+        document.getElementById('cases-body').innerHTML = '<tr><td colspan="7" class="text-center" style="color: red;">Fehler beim Laden der Fälle</td></tr>';
+      }
+    }
+
+    function getStatusClass(status) {
+      const s = (status || '').toLowerCase();
+      if (s.includes('neu')) return 'status-neu';
+      if (s.includes('abgeschlossen')) return 'status-abgeschlossen';
+      return 'status-bearbeitung';
+    }
+
+    function renderCases(cases) {
+      const tbody = document.getElementById('cases-body');
+      tbody.innerHTML = '';
+
+      if (!cases || cases.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center">Keine Fälle gefunden.</td></tr>';
+        return;
+      }
+
+      cases.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+                    <td><strong>${c.caseNumber || 'Neu'}</strong></td>
+                    <td>${c.subject}</td>
+                    <td>${c.dienststelle || '-'}</td>
+                    <td>${c.createdBy}</td>
+                    <td>${c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '-'}</td>
+                    <td><span class="status-badge ${getStatusClass(c.status)}">${c.status}</span></td>
+                    <td>
+                        <a href="/create-damage-case?id=${c.id}" class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">Ansehen / Bearbeiten</a>
+                    </td>
+                `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.getElementById('scope-filters').addEventListener('click', (e) => {
+      if (e.target.classList.contains('filter-btn')) {
+        loadCases(e.target.dataset.scope);
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+
 </html>
