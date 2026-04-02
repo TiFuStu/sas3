@@ -133,7 +133,7 @@ function isOwner(user, damageCase) {
   return (
     normalizeUsername(user?.username) !== "" &&
     normalizeUsername(user?.username) ===
-    normalizeUsername(damageCase?.createdBy)
+      normalizeUsername(damageCase?.createdBy)
   );
 }
 
@@ -148,15 +148,25 @@ function canViewCase(user, damageCase) {
 
   const status = damageCase.status || "Neu";
 
-  if (hasPermission(user, "view_leitung_cases") && (status === "Leitung" || status === "Abgeschlossen")) {
+  if (
+    hasPermission(user, "view_leitung_cases") &&
+    (status === "Leitung" || status === "Abgeschlossen")
+  ) {
     return true;
   }
 
-  if (hasPermission(user, "view_team_cases") && (status === "Team" || status === "Abgeschlossen")) {
+  if (
+    hasPermission(user, "view_team_cases") &&
+    (status === "Team" || status === "Abgeschlossen")
+  ) {
     return true;
   }
 
-  return hasPermission(user, "view_own_cases") && isOwner(user, damageCase) && status === "Neu";
+  return (
+    hasPermission(user, "view_own_cases") &&
+    isOwner(user, damageCase) &&
+    status === "Neu"
+  );
 }
 
 function canEditCase(user, damageCase) {
@@ -178,7 +188,11 @@ function canEditCase(user, damageCase) {
     return true;
   }
 
-  return hasPermission(user, "edit_own_cases") && isOwner(user, damageCase) && status === "Neu";
+  return (
+    hasPermission(user, "edit_own_cases") &&
+    isOwner(user, damageCase) &&
+    status === "Neu"
+  );
 }
 
 module.exports = {

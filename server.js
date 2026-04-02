@@ -10,15 +10,33 @@ const LDAPSearch = require("./src/LDAPSearch");
 
 // Mock Data for Lookups (would normally be in another DB)
 const VEHICLE_DATA = {
-  "B-AB-123": { insurance: "HUK Coburg", registrationOffice: "Berlin", insuranceEmail: "kfz@huk.de" },
-  "HH-CD-456": { insurance: "Allianz", registrationOffice: "Hamburg", insuranceEmail: "service@allianz.de" },
-  "M-EF-789": { insurance: "R+V Versicherung", registrationOffice: "München", insuranceEmail: "info@ruv.de" }
+  "B-AB-123": {
+    insurance: "HUK Coburg",
+    registrationOffice: "Berlin",
+    insuranceEmail: "kfz@huk.de",
+  },
+  "HH-CD-456": {
+    insurance: "Allianz",
+    registrationOffice: "Hamburg",
+    insuranceEmail: "service@allianz.de",
+  },
+  "M-EF-789": {
+    insurance: "R+V Versicherung",
+    registrationOffice: "München",
+    insuranceEmail: "info@ruv.de",
+  },
 };
 
 const STREET_DATA = {
-  "Hauptstraße": { district: "Berlin-Mitte", sections: ["Nord", "Süd", "Mitte"] },
-  "Bahnhofstraße": { district: "Hamburg-Altona", sections: ["Gleis 1-4", "Bahnhofsvorplatz"] },
-  "Ringweg": { district: "München-Sendling", sections: ["Äußerer Ring", "Innerer Ring"] }
+  Hauptstraße: { district: "Berlin-Mitte", sections: ["Nord", "Süd", "Mitte"] },
+  Bahnhofstraße: {
+    district: "Hamburg-Altona",
+    sections: ["Gleis 1-4", "Bahnhofsvorplatz"],
+  },
+  Ringweg: {
+    district: "München-Sendling",
+    sections: ["Äußerer Ring", "Innerer Ring"],
+  },
 };
 
 const configPath = path.join(__dirname, "/config/config.json");
@@ -45,17 +63,23 @@ app.use(async (req, res, next) => {
       return next();
     }
 
-    const clientCert = req.socket.getPeerX509Certificate ? req.socket.getPeerX509Certificate() : null;
+    const clientCert = req.socket.getPeerX509Certificate
+      ? req.socket.getPeerX509Certificate()
+      : null;
     let username = null;
     if (clientCert && clientCert.subjectAltName) {
       const match = /othername:UPN:([^\@]+)/.exec(clientCert.subjectAltName);
       if (match) username = match[1];
     }
     if (!username) {
-      const cert = req.socket.getPeerCertificate ? req.socket.getPeerCertificate() : null;
+      const cert = req.socket.getPeerCertificate
+        ? req.socket.getPeerCertificate()
+        : null;
       if (cert && cert.subject) {
-        if (cert.subject.emailAddress) username = cert.subject.emailAddress.split('@')[0];
-        else if (cert.subject.CN && cert.subject.CN.includes('@')) username = cert.subject.CN.split('@')[0];
+        if (cert.subject.emailAddress)
+          username = cert.subject.emailAddress.split("@")[0];
+        else if (cert.subject.CN && cert.subject.CN.includes("@"))
+          username = cert.subject.CN.split("@")[0];
         if (!username && cert.subjectaltname) {
           const match = cert.subjectaltname.match(/email:([^,\s@]+)/);
           if (match) username = match[1];
@@ -99,7 +123,11 @@ function requireLogin(req, res, next) {
     return;
   }
 
-  res.status(403).send("<h2>Zugriff verweigert</h2><p>Es konnte keine gültige Anmeldung über das Client-Zertifikat durchgeführt werden.</p>");
+  res
+    .status(403)
+    .send(
+      "<h2>Zugriff verweigert</h2><p>Es konnte keine gültige Anmeldung über das Client-Zertifikat durchgeführt werden.</p>",
+    );
 }
 
 function requirePermission(permission) {
@@ -127,13 +155,25 @@ function requireAnyPermission(permissions) {
 }
 
 async function fetchDirectoryUser(username) {
-  const searcher = new LDAPSearch(config.ldap.realm, config.ldap.username, config.ldap.password);
+  const searcher = new LDAPSearch(
+    config.ldap.realm,
+    config.ldap.username,
+    config.ldap.password,
+  );
   const filter = config.ldap.userFilter.replace("{{username}}", username);
 
   try {
     const results = await searcher.search(
       filter,
-      "dn", "memberOf", "mail", "givenName", "sn", "displayName", "cn", "sAMAccountName", "department"
+      "dn",
+      "memberOf",
+      "mail",
+      "givenName",
+      "sn",
+      "displayName",
+      "cn",
+      "sAMAccountName",
+      "department",
     );
 
     if (results && results.length > 0) {
@@ -146,8 +186,10 @@ async function fetchDirectoryUser(username) {
         sn: result.sn ? result.sn[0] : "",
         displayName: result.displayName ? result.displayName[0] : "",
         cn: result.cn ? result.cn[0] : "",
-        sAMAccountName: result.sAMAccountName ? result.sAMAccountName[0] : username,
-        department: result.department ? result.department[0] : ""
+        sAMAccountName: result.sAMAccountName
+          ? result.sAMAccountName[0]
+          : username,
+        department: result.department ? result.department[0] : "",
       };
     }
   } catch (error) {
@@ -172,7 +214,10 @@ function toArray(value) {
 function buildSessionUser(username, directoryUser, authorization) {
   const firstName = directoryUser?.givenName || "";
   const lastName = directoryUser?.sn || "";
-  const displayName = directoryUser?.displayName || [firstName, lastName].filter(Boolean).join(" ") || username;
+  const displayName =
+    directoryUser?.displayName ||
+    [firstName, lastName].filter(Boolean).join(" ") ||
+    username;
   const email = directoryUser?.mail || "";
   const dienststelle = directoryUser?.department || "";
   const kurzel = db.createUserCode(username);
@@ -189,7 +234,7 @@ function buildSessionUser(username, directoryUser, authorization) {
     roles: authorization.roles,
     roleLabels: authorization.roleLabels,
     permissions: authorization.permissions,
-    isAdmin: authorization.permissions.includes("manage_users")
+    isAdmin: authorization.permissions.includes("manage_users"),
   };
 }
 
@@ -200,7 +245,7 @@ async function authenticate(username) {
 
   // Check for test users configured in config.json
   const testUser = (config.testUsers || []).find(
-    (u) => u.username.toLowerCase() === username.toLowerCase()
+    (u) => u.username.toLowerCase() === username.toLowerCase(),
   );
 
   if (testUser) {
@@ -213,15 +258,18 @@ async function authenticate(username) {
       displayName: testUser.displayName || "",
       cn: testUser.username,
       sAMAccountName: testUser.username,
-      department: testUser.department || ""
+      department: testUser.department || "",
     };
 
-    const authorization = rights.resolveAuthorization(directoryUser.memberOf, config);
+    const authorization = rights.resolveAuthorization(
+      directoryUser.memberOf,
+      config,
+    );
     return {
       ok: true,
       directoryUser,
       authorization,
-      user: buildSessionUser(username, directoryUser, authorization)
+      user: buildSessionUser(username, directoryUser, authorization),
     };
   }
 
@@ -231,7 +279,10 @@ async function authenticate(username) {
     return { ok: false, reason: "notfound" };
   }
 
-  const authorization = rights.resolveAuthorization(directoryUser.memberOf, config);
+  const authorization = rights.resolveAuthorization(
+    directoryUser.memberOf,
+    config,
+  );
   if (!authorization.isMember) {
     return { ok: false, reason: "forbidden" };
   }
@@ -350,7 +401,8 @@ app.get(
   requireAnyPermission(["create_case", "view_own_cases", "view_all_cases"]),
   (_req, res) => {
     res.sendFile(path.join(__dirname, "/public/create_damage_case.html"));
-  });
+  },
+);
 
 app.get("/logout", (req, res) => {
   req.session.destroy((error) => {
@@ -359,7 +411,11 @@ app.get("/logout", (req, res) => {
       return;
     }
 
-    res.status(200).send("<h2>Abgemeldet</h2><p>Aufgrund von Single Sign-On (SSO) sind Sie weiterhin über Ihr Windows-Zertifikat mit dem System verbunden. Schließen Sie Ihren Browser, um die Sitzung vollständig zu beenden.</p>");
+    res
+      .status(200)
+      .send(
+        "<h2>Abgemeldet</h2><p>Aufgrund von Single Sign-On (SSO) sind Sie weiterhin über Ihr Windows-Zertifikat mit dem System verbunden. Schließen Sie Ihren Browser, um die Sitzung vollständig zu beenden.</p>",
+      );
   });
 });
 
@@ -374,11 +430,16 @@ app.get("/api/me", (req, res) => {
 
 app.get("/api/next-case-number", requireLogin, async (_req, res) => {
   try {
-    const nextNumber = await db.getNextCaseNumber(await db.connect(), new Date());
+    const nextNumber = await db.getNextCaseNumber(
+      await db.connect(),
+      new Date(),
+    );
     res.json({ nextNumber });
   } catch (error) {
     console.error("Fehler beim Abrufen der nächsten Fallnummer", error);
-    res.status(500).json({ error: "Fehler beim Abrufen der nächsten Fallnummer" });
+    res
+      .status(500)
+      .json({ error: "Fehler beim Abrufen der nächsten Fallnummer" });
   }
 });
 
@@ -403,9 +464,13 @@ app.get("/api/lookup/street", requireLogin, (req, res) => {
   }
 });
 
-app.get("/users", requireLogin, requirePermission("manage_users"), (_req, res) => {
-  res.sendFile(path.join(__dirname, "/public/users.html"));
-},
+app.get(
+  "/users",
+  requireLogin,
+  requirePermission("manage_users"),
+  (_req, res) => {
+    res.sendFile(path.join(__dirname, "/public/users.html"));
+  },
 );
 
 app.get(
@@ -463,25 +528,37 @@ app.get(
 
       // Determine actual applied scope based on permissions
       let appliedScope = "own";
-      if (requestedScope === "all" && rights.hasPermission(req.session.user, "view_all_cases")) {
+      if (
+        requestedScope === "all" &&
+        rights.hasPermission(req.session.user, "view_all_cases")
+      ) {
         appliedScope = "all";
-      } else if (requestedScope === "department" && rights.hasPermission(req.session.user, "view_all_cases")) {
+      } else if (
+        requestedScope === "department" &&
+        rights.hasPermission(req.session.user, "view_all_cases")
+      ) {
         // we use view_all_cases to allow department view, as manager role implies view_all_cases
         appliedScope = "department";
       }
 
       const includeAll = appliedScope === "all";
-      const department = appliedScope === "department" ? req.session.user.dienststelle : null;
+      const department =
+        appliedScope === "department" ? req.session.user.dienststelle : null;
 
       const damageCases = await db.listDamageCases({
         ownerUsername: req.session.user.username,
         includeAll,
         department,
-        roles: req.session.user.roles
+        roles: req.session.user.roles,
       });
 
       const items = damageCases
-        .filter((damageCase) => rights.canViewCase(req.session.user, damageCase) || (appliedScope === "department" && damageCase.dienststelle === req.session.user.dienststelle))
+        .filter(
+          (damageCase) =>
+            rights.canViewCase(req.session.user, damageCase) ||
+            (appliedScope === "department" &&
+              damageCase.dienststelle === req.session.user.dienststelle),
+        )
         .map((damageCase) => withCasePermissions(req.session.user, damageCase));
 
       res.json({
@@ -531,7 +608,10 @@ app.post(
     try {
       const payload = sanitizeDamageCaseInput(req.body);
       payload.createdBy = req.session.user.username;
-      payload.assignedTo = payload.assignedTo || req.session.user.kurzel || req.session.user.username;
+      payload.assignedTo =
+        payload.assignedTo ||
+        req.session.user.kurzel ||
+        req.session.user.username;
       payload.dienststelle = req.session.user.dienststelle || "";
 
       // Workflow logic: if costs are complete, move to Team
@@ -550,46 +630,56 @@ app.post(
   },
 );
 
-app.put("/api/damage-cases/:id", requireLogin, requireAnyPermission(["edit_own_cases", "edit_team_cases", "approve_case"]), async (req, res) => {
-  try {
-    const existingDamageCase = await fetchDamageCaseOr404(req, res);
-    if (!existingDamageCase) {
-      return;
-    }
+app.put(
+  "/api/damage-cases/:id",
+  requireLogin,
+  requireAnyPermission(["edit_own_cases", "edit_team_cases", "approve_case"]),
+  async (req, res) => {
+    try {
+      const existingDamageCase = await fetchDamageCaseOr404(req, res);
+      if (!existingDamageCase) {
+        return;
+      }
 
-    if (!rights.canEditCase(req.session.user, existingDamageCase)) {
+      if (!rights.canEditCase(req.session.user, existingDamageCase)) {
+        res
+          .status(403)
+          .json({ error: "Keine Bearbeitungsrechte fuer diesen Schadensfall" });
+        return;
+      }
+
+      const payload = sanitizeDamageCaseInput(req.body);
+      payload.assignedTo = payload.assignedTo || existingDamageCase.assignedTo;
+
+      // Workflow logic
+      if (payload.costsComplete && existingDamageCase.status === "Neu") {
+        payload.status = "Team";
+      } else if (
+        req.body.forwardToLeitung &&
+        rights.hasPermission(req.session.user, "forward_to_leitung")
+      ) {
+        payload.status = "Leitung";
+      } else if (
+        req.body.approve &&
+        rights.hasPermission(req.session.user, "approve_case")
+      ) {
+        payload.status = "Abgeschlossen";
+      } else {
+        payload.status = payload.status || existingDamageCase.status;
+      }
+
+      const updatedDamageCase = await db.updateDamageCase(
+        req.params.id,
+        payload,
+      );
+      res.json(withCasePermissions(req.session.user, updatedDamageCase));
+    } catch (error) {
+      console.error("Schadensfall konnte nicht aktualisiert werden", error);
       res
-        .status(403)
-        .json({ error: "Keine Bearbeitungsrechte fuer diesen Schadensfall" });
-      return;
+        .status(500)
+        .json({ error: "Fehler beim Aktualisieren des Schadensfalls" });
     }
-
-    const payload = sanitizeDamageCaseInput(req.body);
-    payload.assignedTo = payload.assignedTo || existingDamageCase.assignedTo;
-
-    // Workflow logic
-    if (payload.costsComplete && existingDamageCase.status === "Neu") {
-      payload.status = "Team";
-    } else if (req.body.forwardToLeitung && rights.hasPermission(req.session.user, "forward_to_leitung")) {
-      payload.status = "Leitung";
-    } else if (req.body.approve && rights.hasPermission(req.session.user, "approve_case")) {
-      payload.status = "Abgeschlossen";
-    } else {
-      payload.status = payload.status || existingDamageCase.status;
-    }
-
-    const updatedDamageCase = await db.updateDamageCase(
-      req.params.id,
-      payload,
-    );
-    res.json(withCasePermissions(req.session.user, updatedDamageCase));
-  } catch (error) {
-    console.error("Schadensfall konnte nicht aktualisiert werden", error);
-    res
-      .status(500)
-      .json({ error: "Fehler beim Aktualisieren des Schadensfalls" });
-  }
-},
+  },
 );
 
 async function connectDatabaseWithRetry() {
@@ -612,11 +702,13 @@ function start() {
     cert: fs.readFileSync("/etc/lbm/ssl/fullchain.pem"),
     ca: fs.readFileSync("/etc/lbm/ssl/confirm-user-ca.pem"),
     requestCert: true,
-    rejectUnauthorized: true
+    rejectUnauthorized: true,
   };
 
   https.createServer(sslOptions, app).listen(config.server.port, () => {
-    console.log(`SaS3 Login running on https://localhost:${config.server.port}`);
+    console.log(
+      `SaS3 Login running on https://localhost:${config.server.port}`,
+    );
     connectDatabaseWithRetry();
   });
 }

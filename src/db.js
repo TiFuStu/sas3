@@ -174,14 +174,14 @@ function mapDamageCase(record) {
     dienststelle: record.SFADIENSTSTELLE || "",
     createdBy: record.SFAERSTELLTVON || "",
     createdAt: record.SFAERSTELLTAM,
-    updatedAt: record.SFAAENDERUNGAM
+    updatedAt: record.SFAAENDERUNGAM,
   };
 }
 
 function parseRequiredWorks(value) {
   if (!value) return [];
   try {
-    const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+    const parsed = typeof value === "string" ? JSON.parse(value) : value;
     return Array.isArray(parsed) ? parsed : [];
   } catch (_error) {
     return [];
@@ -201,8 +201,11 @@ async function getNextTechnicalId(pool, username, now) {
   const timePart = dbHelper.formatDateTimeIso(now).substring(8, 14);
   const likePattern = `SFA_${userCode}_${datePart}_${timePart}_%`;
 
-  const result = await pool.query('SELECT COUNT(*) AS "recordCount" FROM "DATSCHADENSFAELLE" WHERE "SFAID" LIKE $1', [likePattern]);
-  const sequence = (parseInt(result.rows[0]?.recordCount || 0, 10)) + 1;
+  const result = await pool.query(
+    'SELECT COUNT(*) AS "recordCount" FROM "DATSCHADENSFAELLE" WHERE "SFAID" LIKE $1',
+    [likePattern],
+  );
+  const sequence = parseInt(result.rows[0]?.recordCount || 0, 10) + 1;
   return dbHelper.generateKey("SFA", userCode, now, sequence);
 }
 
@@ -210,10 +213,17 @@ async function getNextCaseNumber(pool, now) {
   const yearToken = String(now.getFullYear()).slice(-2);
   const likePattern = `01/${yearToken}%`;
 
-  const result = await pool.query('SELECT MAX("SFANUMMER") AS "maxNumber" FROM "DATSCHADENSFAELLE" WHERE "SFANUMMER" LIKE $1', [likePattern]);
+  const result = await pool.query(
+    'SELECT MAX("SFANUMMER") AS "maxNumber" FROM "DATSCHADENSFAELLE" WHERE "SFANUMMER" LIKE $1',
+    [likePattern],
+  );
   const maxNumber = result.rows[0]?.maxNumber;
-  const currentSequence = maxNumber ? parseInt(String(maxNumber).slice(-4), 10) : 0;
-  const nextSequence = Number.isFinite(currentSequence) ? currentSequence + 1 : 1;
+  const currentSequence = maxNumber
+    ? parseInt(String(maxNumber).slice(-4), 10)
+    : 0;
+  const nextSequence = Number.isFinite(currentSequence)
+    ? currentSequence + 1
+    : 1;
 
   return `01/${yearToken}${String(nextSequence).padStart(4, "0")}`;
 }
@@ -232,7 +242,8 @@ async function upsertUser(user) {
     user.username;
   const shortCode = user.shortCode || createUserCode(user.username);
 
-  await pool.query(`
+  await pool.query(
+    `
         INSERT INTO "SYSBENUTZER" (
             "BENID", "BENADUID", "BENSASXUSER", "BENVORNAME", "BENNACHNAME", "BENKUERZEL", "BENMAIL", "BENANZEIGENAME", "BENDIENSTSTELLE", "BENAKTUALISIERTAM"
         )
@@ -246,14 +257,26 @@ async function upsertUser(user) {
             "BENANZEIGENAME" = EXCLUDED."BENANZEIGENAME",
             "BENDIENSTSTELLE" = EXCLUDED."BENDIENSTSTELLE",
             "BENAKTUALISIERTAM" = CURRENT_TIMESTAMP;
-    `, [
-    user.username, user.username, user.username, firstName, lastName, shortCode, user.email || "", displayName, user.dienststelle || ""
-  ]);
+    `,
+    [
+      user.username,
+      user.username,
+      user.username,
+      firstName,
+      lastName,
+      shortCode,
+      user.email || "",
+      displayName,
+      user.dienststelle || "",
+    ],
+  );
 }
 
 async function getUsers() {
   const pool = await getPool();
-  const result = await pool.query('SELECT * FROM "SYSBENUTZER" ORDER BY COALESCE("BENNACHNAME", "BENID"), COALESCE("BENVORNAME", "BENID")');
+  const result = await pool.query(
+    'SELECT * FROM "SYSBENUTZER" ORDER BY COALESCE("BENNACHNAME", "BENID"), COALESCE("BENVORNAME", "BENID")',
+  );
   return result.rows;
 }
 
@@ -263,7 +286,8 @@ async function createDamageCase(damageCase) {
   const technicalId = await getNextTechnicalId(pool, damageCase.createdBy, now);
   const caseNumber = await getNextCaseNumber(pool, now);
 
-  await pool.query(`
+  await pool.query(
+    `
         INSERT INTO "DATSCHADENSFAELLE" (
             "SFAID", "SFANUMMER", "SFAGILTAB", "SFASTATUS", "SFABETREFF", "SFABEZEICHNUNG", "SFABESCHREIBUNG", "SFADATUM", 
             "SFASTRASSE", "SFAABSCHNITTVON", "SFAABSCHNITTBIS", "SFARICHTUNG", "SFAKMSTATION", "SFALANDKREIS", 
@@ -275,16 +299,42 @@ async function createDamageCase(damageCase) {
         VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
         )
-    `, [
-    technicalId, caseNumber, dbHelper.formatDateIso(now), damageCase.status || "Neu", damageCase.subject || "", damageCase.subject || "",
-    damageCase.description || "", damageCase.damageDate || "", damageCase.street || "", damageCase.sectionFrom || "", damageCase.sectionTo || "",
-    damageCase.direction || "", damageCase.kmStation || "", damageCase.district || "", damageCase.plateNumber || "",
-    damageCase.registrationOffice || "", damageCase.responsibleParty || "", damageCase.responsiblePartyAddress || "", damageCase.insurance || "",
-    damageCase.insurancePolicyNumber || "", damageCase.insuranceClaimNumber || "", damageCase.insuranceEmail || "",
-    damageCase.invoiceTo || "", damageCase.cashDesk || "", parseFloat(damageCase.otherCosts || 0), parseFloat(damageCase.openClaimAmount || 0),
-    !!damageCase.costsComplete, damageCase.assignedTo || "", damageCase.followUpDate || "", JSON.stringify(damageCase.requiredWorks || []),
-    damageCase.dienststelle || "", damageCase.createdBy
-  ]);
+    `,
+    [
+      technicalId,
+      caseNumber,
+      dbHelper.formatDateIso(now),
+      damageCase.status || "Neu",
+      damageCase.subject || "",
+      damageCase.subject || "",
+      damageCase.description || "",
+      damageCase.damageDate || "",
+      damageCase.street || "",
+      damageCase.sectionFrom || "",
+      damageCase.sectionTo || "",
+      damageCase.direction || "",
+      damageCase.kmStation || "",
+      damageCase.district || "",
+      damageCase.plateNumber || "",
+      damageCase.registrationOffice || "",
+      damageCase.responsibleParty || "",
+      damageCase.responsiblePartyAddress || "",
+      damageCase.insurance || "",
+      damageCase.insurancePolicyNumber || "",
+      damageCase.insuranceClaimNumber || "",
+      damageCase.insuranceEmail || "",
+      damageCase.invoiceTo || "",
+      damageCase.cashDesk || "",
+      parseFloat(damageCase.otherCosts || 0),
+      parseFloat(damageCase.openClaimAmount || 0),
+      !!damageCase.costsComplete,
+      damageCase.assignedTo || "",
+      damageCase.followUpDate || "",
+      JSON.stringify(damageCase.requiredWorks || []),
+      damageCase.dienststelle || "",
+      damageCase.createdBy,
+    ],
+  );
 
   return getDamageCaseById(technicalId);
 }
@@ -302,7 +352,9 @@ async function listDamageCases(options = {}) {
 
     // Erfasser: Eigenen Fälle (in Bearbeitung)
     if (options.roles?.includes("erfasser")) {
-      roleClauses.push(`(LOWER("SFAERSTELLTVON") = LOWER($${params.length + 1}) AND "SFASTATUS" = 'Neu')`);
+      roleClauses.push(
+        `(LOWER("SFAERSTELLTVON") = LOWER($${params.length + 1}) AND "SFASTATUS" = 'Neu')`,
+      );
       params.push(options.ownerUsername);
     }
 
@@ -317,14 +369,15 @@ async function listDamageCases(options = {}) {
     }
 
     if (roleClauses.length > 0) {
-      query += ' AND (' + roleClauses.join(' OR ') + ')';
+      query += " AND (" + roleClauses.join(" OR ") + ")";
     } else {
       // No permissions, return nothing
-      query += ' AND 1=0';
+      query += " AND 1=0";
     }
   }
 
-  query += ' ORDER BY COALESCE("SFAAENDERUNGAM", "SFAERSTELLTAM") DESC, "SFANUMMER" DESC';
+  query +=
+    ' ORDER BY COALESCE("SFAAENDERUNGAM", "SFAERSTELLTAM") DESC, "SFANUMMER" DESC';
 
   const result = await pool.query(query, params);
   return result.rows.map(mapDamageCase);
@@ -332,7 +385,10 @@ async function listDamageCases(options = {}) {
 
 async function getDamageCaseById(damageCaseId) {
   const pool = await getPool();
-  const result = await pool.query('SELECT * FROM "DATSCHADENSFAELLE" WHERE "SFAID" = $1 LIMIT 1', [damageCaseId]);
+  const result = await pool.query(
+    'SELECT * FROM "DATSCHADENSFAELLE" WHERE "SFAID" = $1 LIMIT 1',
+    [damageCaseId],
+  );
   const record = result.rows[0];
   return record ? mapDamageCase(record) : null;
 }
@@ -340,7 +396,8 @@ async function getDamageCaseById(damageCaseId) {
 async function updateDamageCase(damageCaseId, damageCase) {
   const pool = await getPool();
 
-  await pool.query(`
+  await pool.query(
+    `
         UPDATE "DATSCHADENSFAELLE"
         SET
             "SFASTATUS" = $1, "SFABETREFF" = $2, "SFABEZEICHNUNG" = $2, "SFABESCHREIBUNG" = $3, "SFADATUM" = $4, 
@@ -351,15 +408,37 @@ async function updateDamageCase(damageCaseId, damageCase) {
             "SFASONSTIGEKOSTEN" = $21, "SFAOFFENEFORDERUNG" = $22, "SFAKOSTENKOMPLETT" = $23, "SFABEARBEITER" = $24, 
             "SFAWIEDERVORLAGEAM" = $25, "SFAERFORDERLICHEARBEITEN" = $26, "SFAAENDERUNGAM" = CURRENT_TIMESTAMP
         WHERE "SFAID" = $27
-    `, [
-    damageCase.status || "Neu", damageCase.subject || "", damageCase.description || "", damageCase.damageDate || "",
-    damageCase.street || "", damageCase.sectionFrom || "", damageCase.sectionTo || "", damageCase.direction || "",
-    damageCase.kmStation || "", damageCase.district || "", damageCase.plateNumber || "", damageCase.registrationOffice || "",
-    damageCase.responsibleParty || "", damageCase.responsiblePartyAddress || "", damageCase.insurance || "", damageCase.insurancePolicyNumber || "",
-    damageCase.insuranceClaimNumber || "", damageCase.insuranceEmail || "", damageCase.invoiceTo || "", damageCase.cashDesk || "",
-    parseFloat(damageCase.otherCosts || 0), parseFloat(damageCase.openClaimAmount || 0), !!damageCase.costsComplete,
-    damageCase.assignedTo || "", damageCase.followUpDate || "", JSON.stringify(damageCase.requiredWorks || []), damageCaseId
-  ]);
+    `,
+    [
+      damageCase.status || "Neu",
+      damageCase.subject || "",
+      damageCase.description || "",
+      damageCase.damageDate || "",
+      damageCase.street || "",
+      damageCase.sectionFrom || "",
+      damageCase.sectionTo || "",
+      damageCase.direction || "",
+      damageCase.kmStation || "",
+      damageCase.district || "",
+      damageCase.plateNumber || "",
+      damageCase.registrationOffice || "",
+      damageCase.responsibleParty || "",
+      damageCase.responsiblePartyAddress || "",
+      damageCase.insurance || "",
+      damageCase.insurancePolicyNumber || "",
+      damageCase.insuranceClaimNumber || "",
+      damageCase.insuranceEmail || "",
+      damageCase.invoiceTo || "",
+      damageCase.cashDesk || "",
+      parseFloat(damageCase.otherCosts || 0),
+      parseFloat(damageCase.openClaimAmount || 0),
+      !!damageCase.costsComplete,
+      damageCase.assignedTo || "",
+      damageCase.followUpDate || "",
+      JSON.stringify(damageCase.requiredWorks || []),
+      damageCaseId,
+    ],
+  );
 
   return getDamageCaseById(damageCaseId);
 }
@@ -373,5 +452,5 @@ module.exports = {
   getUsers,
   listDamageCases,
   updateDamageCase,
-  upsertUser
+  upsertUser,
 };
