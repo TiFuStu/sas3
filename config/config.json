@@ -51,7 +51,7 @@
     "password": "zeFDJk1Rh5HviNxTcsxM",
     "userFilter": "(&(sAMAccountName={{username}})(objectclass=user)(!(userAccountControl:1.2.840.113556.1.4.804:=8454242))(!(memberOf:1.2.840.113556.1.4.1941:=CN=,OU=Domain Controllers,DC=lsv,DC=intra)))",
     "allowedGroupDN": "CN=sas3-erfasser,OU=Groups,DC=lsv,DC=intra",
-    "adminGroupDN": "CN=sas3-admins,OU=Groups,DC=lsv,DC=intra"
+    "adminGroupDN": "CN=DL5 Azubi HG,OU=Groups,DC=lsv,DC=intra"
   },
   "db": {
     "user": "postgres",
