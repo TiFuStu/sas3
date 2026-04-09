@@ -1,12 +1,21 @@
-const express = require("express");
-const fs = require("fs");
-const path = require("path");
-const session = require("express-session");
-const bodyParser = require("body-parser");
-const https = require("https");
-const db = require("./src/db");
-const rights = require("./src/rights");
-const LDAPSearch = require("./src/LDAPSearch");
+import express from "express";
+import fs from "fs";
+import path from "path";
+import session from "express-session";
+import bodyParser from "body-parser";
+import https from "https";
+import http from "http";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+// Import local CommonJS modules (Node.js treats module.exports as default export)
+import db from "./src/db.js";
+import rights from "./src/rights.js";
+import LDAPSearch from "./src/LDAPSearch.js";
+
+// ESM shims for __dirname and __filename
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Mock Data for Lookups (would normally be in another DB)
 const VEHICLE_DATA = {
@@ -697,20 +706,35 @@ async function connectDatabaseWithRetry() {
 }
 
 function start() {
-  const sslOptions = {
-    key: fs.readFileSync("/etc/lbm/ssl/privkey.pem"),
-    cert: fs.readFileSync("/etc/lbm/ssl/fullchain.pem"),
-    ca: fs.readFileSync("/etc/lbm/ssl/confirm-user-ca.pem"),
-    requestCert: true,
-    rejectUnauthorized: true,
-  };
+  const certPath = "/etc/lbm/ssl/privkey.pem";
+  const fullchainPath = "/etc/lbm/ssl/fullchain.pem";
+  const caPath = "/etc/lbm/ssl/confirm-user-ca.pem";
 
-  https.createServer(sslOptions, app).listen(config.server.port, () => {
-    console.log(
-      `SaS3 Login running on https://localhost:${config.server.port}`,
-    );
-    connectDatabaseWithRetry();
-  });
+  const hasCerts = fs.existsSync(certPath);
+
+  if (hasCerts) {
+    const sslOptions = {
+      key: fs.readFileSync(certPath),
+      cert: fs.readFileSync(fullchainPath),
+      ca: fs.readFileSync(caPath),
+      requestCert: true,
+      rejectUnauthorized: true,
+    };
+
+    https.createServer(sslOptions, app).listen(config.server.port, () => {
+      console.log(
+        `SaS3 Login running on https://localhost:${config.server.port} (Production Mode)`,
+      );
+      connectDatabaseWithRetry();
+    });
+  } else {
+    http.createServer(app).listen(config.server.port, () => {
+      console.log(
+        `SaS3 Login running on http://localhost:${config.server.port} (Test Mode without certificates)`,
+      );
+      connectDatabaseWithRetry();
+    });
+  }
 }
 
 start();
