@@ -29,7 +29,12 @@ const elements = {
   status: document.getElementById("status"),
   subject: document.getElementById("subject"),
   damageDate: document.getElementById("damage-date"),
+  sapDebitor: document.getElementById("sap-debitor"),
+  sapNumber: document.getElementById("sap-number"),
   description: document.getElementById("description"),
+  recordingOffice: document.getElementById("recording-office"),
+  policeStation: document.getElementById("police-station"),
+  policeDiaryNumber: document.getElementById("police-diary-number"),
   street: document.getElementById("street"),
   district: document.getElementById("district"),
   sectionFrom: document.getElementById("section-from"),
@@ -95,6 +100,7 @@ const elements = {
   catalogItemsSection: document.getElementById("catalog-items-section"),
   catalogItemsList: document.getElementById("catalog-items-list"),
   catalogTotal: document.getElementById("catalog-total"),
+  requiredWorkCustom: document.getElementById("required-work-custom"),
 };
 
 function getRequiredWorkInputs() {
@@ -642,17 +648,24 @@ function applyInsuranceSelection(insuranceId) {
 }
 
 function renderCatalogItems() {
-  const tbody = elements.catalogItemsList;
+  // Katalog wird jetzt auf der separaten Kostenberechnung-Seite verwaltet
+  // Diese Funktion ist rückwärtskompatibel, aber wird nicht mehr verwendet
+  const catalogItemsListElement = document.getElementById("catalog-items-list");
+  const catalogItemsSectionElement = document.getElementById("catalog-items-section");
+  
+  if (!catalogItemsListElement || !catalogItemsSectionElement) {
+    return; // Elemente existieren nicht (neue Seite)
+  }
 
   if (!state.catalogItems || state.catalogItems.length === 0) {
-    elements.catalogItemsSection.style.display = "none";
+    catalogItemsSectionElement.style.display = "none";
     return;
   }
 
-  elements.catalogItemsSection.style.display = "block";
+  catalogItemsSectionElement.style.display = "block";
 
   let total = 0;
-  tbody.innerHTML = state.catalogItems
+  catalogItemsListElement.innerHTML = state.catalogItems
     .map((item) => {
       total += item.gesamtpreis;
       return `
@@ -670,7 +683,10 @@ function renderCatalogItems() {
     })
     .join("");
 
-  elements.catalogTotal.textContent = total.toFixed(2).replace(".", ",") + " €";
+  const catalogTotalElement = document.getElementById("catalog-total");
+  if (catalogTotalElement) {
+    catalogTotalElement.textContent = total.toFixed(2).replace(".", ",") + " €";
+  }
   updateCostsCompleteControlState();
 }
 
@@ -726,6 +742,7 @@ function addCatalogPosition() {
 
   state.catalogItems.push(position);
   renderCatalogItems();
+  updateCostsSummary();
 
   elements.catalogSelect.value = "";
   elements.catalogMenge.value = "1";
@@ -735,7 +752,36 @@ function addCatalogPosition() {
 function removeCatalogPosition(posId) {
   state.catalogItems = state.catalogItems.filter((item) => item.id !== posId);
   renderCatalogItems();
+  updateCostsSummary();
   setMessage("Position entfernt");
+}
+
+function updateCostsSummary() {
+  const catalogTotal = getCatalogCostTotal();
+  const otherCosts = parseFloat(elements.otherCosts.value || 0);
+  const openClaim = parseFloat(elements.openClaimAmount.value || 0);
+  const totalCosts = catalogTotal + otherCosts;
+
+  const sumDisplayCatalog = document.getElementById("sum-display-catalog");
+  const sumDisplayOther = document.getElementById("sum-display-other");
+  const sumDisplayTotalInput = document.getElementById(
+    "sum-display-total-input",
+  );
+  const costsSummarySection = document.getElementById("costs-summary-section");
+
+  if (sumDisplayCatalog) {
+    sumDisplayCatalog.textContent = catalogTotal.toFixed(2).replace(".", ",") + " €";
+  }
+  if (sumDisplayOther) {
+    sumDisplayOther.textContent = otherCosts.toFixed(2).replace(".", ",") + " €";
+  }
+  if (sumDisplayTotalInput) {
+    sumDisplayTotalInput.value = totalCosts.toFixed(2).replace(".", ",") + " €";
+  }
+  if (costsSummarySection) {
+    costsSummarySection.style.display =
+      catalogTotal > 0 || otherCosts > 0 || openClaim > 0 ? "block" : "none";
+  }
 }
 
 function updateStatusChips() {
@@ -773,7 +819,12 @@ function clearForm() {
   elements.status.value = "Neu";
   elements.subject.value = "";
   elements.damageDate.value = "";
+  elements.sapDebitor.value = "";
+  elements.sapNumber.value = "";
   elements.description.value = "";
+  elements.recordingOffice.value = "";
+  elements.policeStation.value = "";
+  elements.policeDiaryNumber.value = "";
   elements.street.value = "";
   elements.district.value = "";
   elements.sectionFrom.value = "";
@@ -813,20 +864,38 @@ function clearForm() {
   getRequiredWorkInputs().forEach((input) => {
     input.checked = false;
   });
+  if (elements.requiredWorkCustom) {
+    elements.requiredWorkCustom.value = "";
+  }
   state.catalogItems = [];
   renderCatalogItems();
   updateCostsCompleteRequirementsInfo();
   updateCostsCompleteControlState();
+  updateCostsSummary();
   updateActionButtons(null);
 }
 
 function collectPayload() {
   syncResponsiblePartyAddressValue();
+  const selectedRequiredWorks = getRequiredWorkInputs()
+    .filter((input) => input.checked)
+    .map((input) => input.value);
+  const customRequiredWork = String(elements.requiredWorkCustom?.value || "").trim();
+
+  if (customRequiredWork) {
+    selectedRequiredWorks.push(customRequiredWork);
+  }
+
   return {
     status: elements.status.value,
     subject: elements.subject.value,
     damageDate: elements.damageDate.value,
+    sapDebitor: elements.sapDebitor.value,
+    sapNumber: elements.sapNumber.value,
     description: elements.description.value,
+    recordingOffice: elements.recordingOffice.value,
+    policeStation: elements.policeStation.value,
+    policeDiaryNumber: elements.policeDiaryNumber.value,
     street: elements.street.value,
     district: elements.district.value,
     sectionFrom: elements.sectionFrom.value,
@@ -854,9 +923,7 @@ function collectPayload() {
     assignedTo: elements.assignedTo.value,
     followUpDate: elements.followUpDate.value,
     costsComplete: elements.costsComplete.checked,
-    requiredWorks: getRequiredWorkInputs()
-      .filter((input) => input.checked)
-      .map((input) => input.value),
+    requiredWorks: selectedRequiredWorks,
   };
 }
 
@@ -875,7 +942,12 @@ function populateForm(damageCase) {
   elements.status.value = damageCase.status || "Neu";
   elements.subject.value = damageCase.subject || "";
   elements.damageDate.value = damageCase.damageDate || "";
+  elements.sapDebitor.value = damageCase.sapDebitor || "";
+  elements.sapNumber.value = damageCase.sapNumber || "";
   elements.description.value = damageCase.description || "";
+  elements.recordingOffice.value = damageCase.recordingOffice || "";
+  elements.policeStation.value = damageCase.policeStation || "";
+  elements.policeDiaryNumber.value = damageCase.policeDiaryNumber || "";
   elements.street.value = damageCase.street || "";
   elements.district.value = damageCase.district || "";
   elements.sectionFrom.value = damageCase.sectionFrom || "";
@@ -911,13 +983,26 @@ function populateForm(damageCase) {
   const requiredWorks = Array.isArray(damageCase.requiredWorks)
     ? damageCase.requiredWorks
     : [];
+
+  const predefinedRequiredWorks = new Set(
+    getRequiredWorkInputs().map((input) => input.value),
+  );
+
   getRequiredWorkInputs().forEach((input) => {
     input.checked = requiredWorks.includes(input.value);
   });
 
+  if (elements.requiredWorkCustom) {
+    const customRequiredWorks = requiredWorks.filter(
+      (value) => !predefinedRequiredWorks.has(value),
+    );
+    elements.requiredWorkCustom.value = customRequiredWorks.join(", ");
+  }
+
   syncInvoiceRecipientFields();
   updateCostsCompleteRequirementsInfo();
   updateCostsCompleteControlState();
+  updateCostsSummary();
 
   setFormDisabled(!damageCase.canEdit);
 }
@@ -1368,10 +1453,12 @@ elements.cashDesk.addEventListener("change", () => {
   updateCostsCompleteControlState();
 });
 elements.otherCosts.addEventListener("input", () => {
+  updateCostsSummary();
   updateCostsCompleteRequirementsInfo();
   updateCostsCompleteControlState();
 });
 elements.openClaimAmount.addEventListener("input", () => {
+  updateCostsSummary();
   updateCostsCompleteRequirementsInfo();
   updateCostsCompleteControlState();
 });

@@ -6,27 +6,27 @@
     <title>Katalog-Verwaltung - SaS3</title>
     <link rel="stylesheet" href="/src/lbm.css">
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: #f5f5f5;
+        .page-intro {
+            margin-bottom: 1.5rem;
+        }
+
+        .page-intro h1 {
+            margin-bottom: 0.5rem;
+            color: var(--lbm-blue);
+        }
+
+        .page-intro p {
             margin: 0;
-            padding: 20px;
+            color: var(--lbm-gray-dark);
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 30px;
-        }
-
-        h1 {
-            color: #003366;
-            border-bottom: 3px solid #003366;
-            padding-bottom: 10px;
-            margin-top: 0;
+        .hero-note {
+            background-color: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            color: #004085;
+            padding: 12px;
+            border-radius: var(--border-radius);
+            margin-bottom: 1.5rem;
         }
 
         .section {
@@ -56,10 +56,11 @@
         }
 
         input, select, textarea {
-            padding: 10px;
+            padding: 0.75rem;
             border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-family: inherit;
         }
 
         textarea {
@@ -68,31 +69,33 @@
         }
 
         button {
-            background-color: #0066cc;
-            color: white;
-            padding: 12px 20px;
+            background-color: var(--lbm-blue);
+            color: var(--lbm-white);
+            padding: 0.6rem 1rem;
             border: none;
-            border-radius: 4px;
+            border-radius: var(--border-radius);
             cursor: pointer;
-            font-size: 14px;
+            font-size: 0.95rem;
             font-weight: 600;
-            transition: background-color 0.3s;
+            transition: var(--transition);
         }
 
         button:hover {
-            background-color: #0052a3;
+            background-color: var(--lbm-blue-dark);
         }
 
         button.secondary {
-            background-color: #666;
+            background-color: var(--lbm-gray);
+            color: var(--lbm-text);
         }
 
         button.secondary:hover {
-            background-color: #555;
+            background-color: var(--lbm-gray-dark);
+            color: var(--lbm-white);
         }
 
         button.danger {
-            background-color: #cc0000;
+            background-color: #b71c1c;
         }
 
         button.danger:hover {
@@ -155,7 +158,7 @@
         .status-message {
             padding: 12px;
             margin-bottom: 20px;
-            border-radius: 4px;
+            border-radius: var(--border-radius);
             display: none;
         }
 
@@ -173,15 +176,6 @@
             display: block;
         }
 
-        .info {
-            background-color: #e7f3ff;
-            border: 1px solid #b3d9ff;
-            padding: 12px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            color: #004085;
-        }
-
         .edit-row {
             background-color: #fff3cd;
         }
@@ -190,23 +184,100 @@
             width: 100%;
             box-sizing: border-box;
         }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal-card {
+            background: var(--lbm-white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            width: min(760px, 100%);
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: var(--lbm-blue);
+        }
+
+        .close-btn {
+            background: transparent;
+            border: 1px solid var(--lbm-gray);
+            color: var(--lbm-text);
+            padding: 0.4rem 0.7rem;
+        }
+
+        .close-btn:hover {
+            background: var(--lbm-gray-light);
+            color: var(--lbm-text);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 900px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>📋 Katalog-Verwaltung</h1>
-
-        <div class="info">
-            <strong>Katalog:</strong> Verwalten Sie hier die verfügbaren Materialien und Leistungen mit ihren Kosten. 
-            Diese können beim Erfassen eines Schadensfalls zur Kostenberechnung ausgewählt werden.
+    <header>
+        <div class="logo-container">
+            <img src="/src/lbm.png" alt="LBM Logo">
+            <span class="header-title">SaS3 - Schadensfallverwaltung</span>
         </div>
+        <div class="user-menu">
+            <a href="/overview" class="btn btn-secondary">Zurück zur Übersicht</a>
+            <a href="/logout" class="logout-btn">Abmelden</a>
+        </div>
+    </header>
 
-        <div id="statusMessage" class="status-message"></div>
+    <div class="container">
+        <div class="card">
+            <div class="page-intro">
+                <h1>Kosten-Katalog</h1>
+                <p>Verwalten Sie Materialien und Leistungen für die Kostenberechnung in Schadensfällen.</p>
+            </div>
 
-        <!-- Neuer Katalog-Eintrag -->
-        <div class="section">
-            <h2>Neuer Katalog-Eintrag</h2>
-            <div class="form-grid">
+            <div class="hero-note">
+                <strong>Katalog:</strong> Verwalten Sie hier die verfügbaren Materialien und Leistungen mit ihren Kosten.
+                Diese können beim Erfassen eines Schadensfalls zur Kostenberechnung ausgewählt werden.
+            </div>
+
+            <div id="statusMessage" class="status-message"></div>
+
+            <!-- Neuer Katalog-Eintrag -->
+            <div class="section">
+                <h2>Neuer Katalog-Eintrag</h2>
+                <div class="form-grid">
                 <div class="form-group">
                     <label for="katBezeichnung">Bezeichnung *</label>
                     <input type="text" id="katBezeichnung" placeholder="z.B. Asphalt-Flickwerk">
@@ -233,16 +304,16 @@
                     <label for="katSatz">Satz (€) *</label>
                     <input type="number" id="katSatz" placeholder="0.00" step="0.01" min="0">
                 </div>
+                </div>
+                <div class="button-group">
+                    <button onclick="addCatalogItem()">Eintrag hinzufügen</button>
+                </div>
             </div>
-            <div class="button-group">
-                <button onclick="addCatalogItem()">Eintrag hinzufügen</button>
-            </div>
-        </div>
 
-        <!-- Katalog-Tabelle -->
-        <div class="section">
-            <h2>Katalog-Einträge</h2>
-            <table id="catalogTable">
+            <!-- Katalog-Tabelle -->
+            <div class="section">
+                <h2>Katalog-Einträge</h2>
+                <table id="catalogTable">
                 <thead>
                     <tr>
                         <th>Bezeichnung</th>
@@ -256,12 +327,63 @@
                 <tbody id="catalogBody">
                     <tr><td colspan="6" style="text-align: center; color: #999;">Lädt...</td></tr>
                 </tbody>
-            </table>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="editCatalogModal" class="modal-overlay" aria-hidden="true">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="editCatalogTitle">
+            <div class="modal-header">
+                <h3 id="editCatalogTitle">Katalog-Eintrag bearbeiten</h3>
+                <button type="button" class="close-btn" onclick="closeEditModal()">Schließen</button>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="editKatBezeichnung">Bezeichnung *</label>
+                    <input type="text" id="editKatBezeichnung">
+                </div>
+                <div class="form-group">
+                    <label for="editKatKategorie">Kategorie</label>
+                    <input type="text" id="editKatKategorie">
+                </div>
+                <div class="form-group full">
+                    <label for="editKatBeschreibung">Beschreibung</label>
+                    <textarea id="editKatBeschreibung"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="editKatEinheit">Einheit</label>
+                    <select id="editKatEinheit">
+                        <option value="Stück">Stück</option>
+                        <option value="Stunde">Stunde</option>
+                        <option value="Quadratmeter">Quadratmeter</option>
+                        <option value="Meter">Meter</option>
+                        <option value="Tonne">Tonne</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editKatSatz">Satz (€) *</label>
+                    <input type="number" id="editKatSatz" step="0.01" min="0">
+                </div>
+                <div class="form-group full">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                        <input type="checkbox" id="editKatAktiv" style="width: auto; margin: 0;">
+                        Eintrag aktiv
+                    </label>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="secondary" onclick="closeEditModal()">Abbrechen</button>
+                <button type="button" onclick="saveEditCatalogItem()">Speichern</button>
+            </div>
         </div>
     </div>
 
     <script>
         let catalogData = [];
+        let editingCatalogId = null;
 
         async function loadCatalog() {
             try {
@@ -357,25 +479,59 @@
             const item = catalogData.find(i => i.id === id);
             if (!item) return;
 
-            const newBezeichnung = prompt('Bezeichnung:', item.bezeichnung);
-            if (newBezeichnung === null) return;
+            editingCatalogId = id;
+            document.getElementById('editKatBezeichnung').value = item.bezeichnung || '';
+            document.getElementById('editKatKategorie').value = item.kategorie || '';
+            document.getElementById('editKatBeschreibung').value = item.beschreibung || '';
+            document.getElementById('editKatEinheit').value = item.einheit || 'Stück';
+            document.getElementById('editKatSatz').value = Number(item.satz || 0).toFixed(2);
+            document.getElementById('editKatAktiv').checked = Boolean(item.aktiv);
 
-            if (!newBezeichnung.trim()) {
+            const modal = document.getElementById('editCatalogModal');
+            modal.classList.add('open');
+            modal.setAttribute('aria-hidden', 'false');
+        }
+
+        function closeEditModal() {
+            const modal = document.getElementById('editCatalogModal');
+            modal.classList.remove('open');
+            modal.setAttribute('aria-hidden', 'true');
+            editingCatalogId = null;
+        }
+
+        async function saveEditCatalogItem() {
+            if (!editingCatalogId) {
+                return;
+            }
+
+            const newBezeichnung = document.getElementById('editKatBezeichnung').value.trim();
+            const newKategorie = document.getElementById('editKatKategorie').value.trim();
+            const newBeschreibung = document.getElementById('editKatBeschreibung').value.trim();
+            const newEinheit = document.getElementById('editKatEinheit').value.trim() || 'Stück';
+            const newSatz = parseFloat(document.getElementById('editKatSatz').value);
+            const newAktiv = document.getElementById('editKatAktiv').checked;
+
+            if (!newBezeichnung) {
                 showStatus('Bezeichnung ist erforderlich', 'error');
                 return;
             }
 
+            if (!Number.isFinite(newSatz) || newSatz <= 0) {
+                showStatus('Satz muss größer als 0 sein', 'error');
+                return;
+            }
+
             try {
-                const response = await fetch(`/api/admin/catalog/${id}`, {
+                const response = await fetch(`/api/admin/catalog/${editingCatalogId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        bezeichnung: newBezeichnung,
-                        beschreibung: item.beschreibung,
-                        kategorie: item.kategorie,
-                        einheit: item.einheit,
-                        satz: item.satz,
-                        aktiv: item.aktiv
+                        bezeichnung: newBezeichnung.trim(),
+                        beschreibung: newBeschreibung.trim(),
+                        kategorie: newKategorie.trim(),
+                        einheit: newEinheit.trim() || 'Stück',
+                        satz: newSatz,
+                        aktiv: newAktiv
                     })
                 });
 
@@ -385,6 +541,7 @@
                 }
 
                 showStatus('Katalog-Eintrag erfolgreich aktualisiert', 'ok');
+                closeEditModal();
                 await loadCatalog();
             } catch (error) {
                 showStatus(`Fehler beim Aktualisieren: ${error.message}`, 'error');

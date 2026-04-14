@@ -94,7 +94,12 @@ async function ensureCoreSchema(scope = getActiveScope()) {
                     "SFABETREFF" VARCHAR(255) NULL,
                     "SFABEZEICHNUNG" VARCHAR(255) NULL,
                     "SFADATUM" VARCHAR(10) NULL,
+                    "SFASAPDEBITOR" VARCHAR(120) NULL,
+                    "SFASAPNUMMER" VARCHAR(120) NULL,
                     "SFABESCHREIBUNG" TEXT NULL,
+                    "SFAAUFNEHMENDEDIENSTSTELLE" VARCHAR(150) NULL,
+                    "SFAPOLIZEI" VARCHAR(150) NULL,
+                    "SFAPOLIZEITAGEBUCHNR" VARCHAR(120) NULL,
                     "SFASTRASSE" VARCHAR(120) NULL,
                     "SFAABSCHNITTVON" VARCHAR(50) NULL,
                     "SFAABSCHNITTBIS" VARCHAR(50) NULL,
@@ -144,6 +149,21 @@ async function ensureCoreSchema(scope = getActiveScope()) {
                   END IF;
                   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='DATSCHADENSFAELLE' AND column_name='SFARECHNUNGMAIL') THEN
                     ALTER TABLE "DATSCHADENSFAELLE" ADD COLUMN "SFARECHNUNGMAIL" VARCHAR(255) NULL;
+                  END IF;
+                  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='DATSCHADENSFAELLE' AND column_name='SFASAPDEBITOR') THEN
+                    ALTER TABLE "DATSCHADENSFAELLE" ADD COLUMN "SFASAPDEBITOR" VARCHAR(120) NULL;
+                  END IF;
+                  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='DATSCHADENSFAELLE' AND column_name='SFASAPNUMMER') THEN
+                    ALTER TABLE "DATSCHADENSFAELLE" ADD COLUMN "SFASAPNUMMER" VARCHAR(120) NULL;
+                  END IF;
+                  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='DATSCHADENSFAELLE' AND column_name='SFAAUFNEHMENDEDIENSTSTELLE') THEN
+                    ALTER TABLE "DATSCHADENSFAELLE" ADD COLUMN "SFAAUFNEHMENDEDIENSTSTELLE" VARCHAR(150) NULL;
+                  END IF;
+                  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='DATSCHADENSFAELLE' AND column_name='SFAPOLIZEI') THEN
+                    ALTER TABLE "DATSCHADENSFAELLE" ADD COLUMN "SFAPOLIZEI" VARCHAR(150) NULL;
+                  END IF;
+                  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='DATSCHADENSFAELLE' AND column_name='SFAPOLIZEITAGEBUCHNR') THEN
+                    ALTER TABLE "DATSCHADENSFAELLE" ADD COLUMN "SFAPOLIZEITAGEBUCHNR" VARCHAR(120) NULL;
                   END IF;
                 END $$;
                 
@@ -300,8 +320,13 @@ function mapDamageCase(record) {
     caseNumber: record.SFANUMMER,
     status: record.SFASTATUS || "Neu",
     subject: record.SFABETREFF || record.SFABEZEICHNUNG || "",
+    sapDebitor: record.SFASAPDEBITOR || "",
+    sapNumber: record.SFASAPNUMMER || "",
     description: record.SFABESCHREIBUNG || "",
     damageDate: record.SFADATUM || "",
+    recordingOffice: record.SFAAUFNEHMENDEDIENSTSTELLE || "",
+    policeStation: record.SFAPOLIZEI || "",
+    policeDiaryNumber: record.SFAPOLIZEITAGEBUCHNR || "",
     street: record.SFASTRASSE || "",
     sectionFrom: record.SFAABSCHNITTVON || "",
     sectionTo: record.SFAABSCHNITTBIS || "",
@@ -446,16 +471,17 @@ async function createDamageCase(damageCase) {
   await pool.query(
     `
         INSERT INTO "DATSCHADENSFAELLE" (
-            "SFAID", "SFANUMMER", "SFAGILTAB", "SFASTATUS", "SFABETREFF", "SFABEZEICHNUNG", "SFABESCHREIBUNG", "SFADATUM", 
-            "SFASTRASSE", "SFAABSCHNITTVON", "SFAABSCHNITTBIS", "SFARICHTUNG", "SFAKMSTATION", "SFALANDKREIS", 
-            "SFAKENNZEICHEN", "SFAZULASSUNGSSTELLE", "SFAVERURSACHER", "SFAVERURSACHERADRESSE", "SFAVERSICHERUNG", 
-            "SFAVERSICHERUNGSSCHEINNR", "SFAVERSICHERUNGSSCHADENNR", "SFAEMAILVERSICHERUNG", "SFARECHNUNGAN", "SFARECHNUNGTYP", 
-            "SFARECHNUNGADRESSE", "SFARECHNUNGTEL", "SFARECHNUNGMAIL", "SFAKASSE", "SFASONSTIGEKOSTEN", 
-            "SFAOFFENEFORDERUNG", "SFAKOSTENKOMPLETT", "SFABEARBEITER", "SFAWIEDERVORLAGEAM", 
-            "SFAERFORDERLICHEARBEITEN", "SFADIENSTSTELLE", "SFAERSTELLTVON", "SFAERSTELLTAM", "SFAAENDERUNGAM"
+          "SFAID", "SFANUMMER", "SFAGILTAB", "SFASTATUS", "SFABETREFF", "SFABEZEICHNUNG", "SFABESCHREIBUNG", "SFADATUM", 
+          "SFASAPDEBITOR", "SFASAPNUMMER", "SFAAUFNEHMENDEDIENSTSTELLE", "SFAPOLIZEI", "SFAPOLIZEITAGEBUCHNR",
+          "SFASTRASSE", "SFAABSCHNITTVON", "SFAABSCHNITTBIS", "SFARICHTUNG", "SFAKMSTATION", "SFALANDKREIS", 
+          "SFAKENNZEICHEN", "SFAZULASSUNGSSTELLE", "SFAVERURSACHER", "SFAVERURSACHERADRESSE", "SFAVERSICHERUNG", 
+          "SFAVERSICHERUNGSSCHEINNR", "SFAVERSICHERUNGSSCHADENNR", "SFAEMAILVERSICHERUNG", "SFARECHNUNGAN", "SFARECHNUNGTYP", 
+          "SFARECHNUNGADRESSE", "SFARECHNUNGTEL", "SFARECHNUNGMAIL", "SFAKASSE", "SFASONSTIGEKOSTEN", 
+          "SFAOFFENEFORDERUNG", "SFAKOSTENKOMPLETT", "SFABEARBEITER", "SFAWIEDERVORLAGEAM", 
+          "SFAERFORDERLICHEARBEITEN", "SFADIENSTSTELLE", "SFAERSTELLTVON", "SFAERSTELLTAM", "SFAAENDERUNGAM"
         )
         VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
         )
     `,
     [
@@ -467,6 +493,11 @@ async function createDamageCase(damageCase) {
       damageCase.subject || "",
       damageCase.description || "",
       damageCase.damageDate || "",
+      damageCase.sapDebitor || "",
+      damageCase.sapNumber || "",
+      damageCase.recordingOffice || "",
+      damageCase.policeStation || "",
+      damageCase.policeDiaryNumber || "",
       damageCase.street || "",
       damageCase.sectionFrom || "",
       damageCase.sectionTo || "",
@@ -562,21 +593,28 @@ async function updateDamageCase(damageCaseId, damageCase) {
     `
         UPDATE "DATSCHADENSFAELLE"
         SET
-            "SFASTATUS" = $1, "SFABETREFF" = $2, "SFABEZEICHNUNG" = $2, "SFABESCHREIBUNG" = $3, "SFADATUM" = $4, 
-            "SFASTRASSE" = $5, "SFAABSCHNITTVON" = $6, "SFAABSCHNITTBIS" = $7, "SFARICHTUNG" = $8, "SFAKMSTATION" = $9, 
-            "SFALANDKREIS" = $10, "SFAKENNZEICHEN" = $11, "SFAZULASSUNGSSTELLE" = $12, "SFAVERURSACHER" = $13, 
-            "SFAVERURSACHERADRESSE" = $14, "SFAVERSICHERUNG" = $15, "SFAVERSICHERUNGSSCHEINNR" = $16, 
-            "SFAVERSICHERUNGSSCHADENNR" = $17, "SFAEMAILVERSICHERUNG" = $18, "SFARECHNUNGAN" = $19, "SFARECHNUNGTYP" = $20, 
-            "SFARECHNUNGADRESSE" = $21, "SFARECHNUNGTEL" = $22, "SFARECHNUNGMAIL" = $23, "SFAKASSE" = $24, 
-            "SFASONSTIGEKOSTEN" = $25, "SFAOFFENEFORDERUNG" = $26, "SFAKOSTENKOMPLETT" = $27, "SFABEARBEITER" = $28, 
-            "SFAWIEDERVORLAGEAM" = $29, "SFAERFORDERLICHEARBEITEN" = $30, "SFAAENDERUNGAM" = CURRENT_TIMESTAMP
-          WHERE "SFAID" = $31
+            "SFASTATUS" = $1, "SFABETREFF" = $2, "SFABEZEICHNUNG" = $2, "SFABESCHREIBUNG" = $3, "SFADATUM" = $4,
+            "SFASAPDEBITOR" = $5, "SFASAPNUMMER" = $6, "SFAAUFNEHMENDEDIENSTSTELLE" = $7, "SFAPOLIZEI" = $8,
+            "SFAPOLIZEITAGEBUCHNR" = $9, "SFASTRASSE" = $10, "SFAABSCHNITTVON" = $11, "SFAABSCHNITTBIS" = $12,
+            "SFARICHTUNG" = $13, "SFAKMSTATION" = $14, "SFALANDKREIS" = $15, "SFAKENNZEICHEN" = $16,
+            "SFAZULASSUNGSSTELLE" = $17, "SFAVERURSACHER" = $18, "SFAVERURSACHERADRESSE" = $19,
+            "SFAVERSICHERUNG" = $20, "SFAVERSICHERUNGSSCHEINNR" = $21, "SFAVERSICHERUNGSSCHADENNR" = $22,
+            "SFAEMAILVERSICHERUNG" = $23, "SFARECHNUNGAN" = $24, "SFARECHNUNGTYP" = $25,
+            "SFARECHNUNGADRESSE" = $26, "SFARECHNUNGTEL" = $27, "SFARECHNUNGMAIL" = $28, "SFAKASSE" = $29,
+            "SFASONSTIGEKOSTEN" = $30, "SFAOFFENEFORDERUNG" = $31, "SFAKOSTENKOMPLETT" = $32, "SFABEARBEITER" = $33,
+            "SFAWIEDERVORLAGEAM" = $34, "SFAERFORDERLICHEARBEITEN" = $35, "SFAAENDERUNGAM" = CURRENT_TIMESTAMP
+          WHERE "SFAID" = $36
     `,
     [
       damageCase.status || "Neu",
       damageCase.subject || "",
       damageCase.description || "",
       damageCase.damageDate || "",
+      damageCase.sapDebitor || "",
+      damageCase.sapNumber || "",
+      damageCase.recordingOffice || "",
+      damageCase.policeStation || "",
+      damageCase.policeDiaryNumber || "",
       damageCase.street || "",
       damageCase.sectionFrom || "",
       damageCase.sectionTo || "",

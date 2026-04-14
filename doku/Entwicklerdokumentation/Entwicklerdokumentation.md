@@ -1,4 +1,10 @@
-# Entwicklerdokumentation fuer SaS3
+# Entwicklerdokumentation für SaS3
+
+## Stand der Dokumentation
+
+- Letzte inhaltliche Aktualisierung: 2026-04-14
+- Quelle: aktueller Code-Stand im Repository
+- Ergänzendes Fachbegriff-Glossar aus der Projektdokumentation: `doku/Glossar.md`
 
 ## 1. Ziel und Umfang
 
@@ -19,15 +25,15 @@ Abgedeckte Kernbereiche:
 - Admin-Funktionen (Rechte, DB-Konfiguration)
 - Frontend-Seiten und deren API-Anbindung
 
-## 2. Systemueberblick
+## 2. Systemüberblick
 
 Zentrale Komponenten:
 
 - `server.mjs`: Express-Server, Routing, Login, Workflow, Guards
 - `src/db.js`: PostgreSQL-Zugriffe, Schema-Setup, Mapping-Funktionen
-- `src/rights.js`: Rollenmodell, Rechteableitung, Sicht-/Editierpruefungen
-- `src/LDAPSearch.js`: LDAP-Suchen fuer AD-Authentifizierung und Gruppen
-- `src/create-damage-case.js`: Client-Logik fuer Schadensfallmaske
+- `src/rights.js`: Rollenmodell, Rechteableitung, Sicht-/Editierprüfungen
+- `src/LDAPSearch.js`: LDAP-Suchen für AD-Authentifizierung und Gruppen
+- `src/create-damage-case.js`: Client-Logik für Schadensfallmaske
 - `public/*.html`: UI-Seiten
 - `config/config.json`: Server-, LDAP-, DB-, Rollen- und Testuser-Konfiguration
 
@@ -97,8 +103,8 @@ async function connectDatabaseWithRetry() {
 
 ### 4.1 Login-Typen
 
-- Dummy-Login ueber `config.testUsers`
-- AD-Login ueber LDAP mit Benutzername + Passwort
+- Dummy-Login über `config.testUsers`
+- AD-Login über LDAP mit Benutzername + Passwort
 
 ### 4.2 Benutzername-Normalisierung
 
@@ -120,7 +126,7 @@ Akzeptierte Eingaben:
 - `user@domain`
 - `user`
 
-### 4.3 AD-Credential-Pruefung
+### 4.3 AD-Credential-Prüfung
 
 ```js
 const credentialCheck = new LDAPSearch(
@@ -146,7 +152,7 @@ await new Promise((resolve, reject) => {
 
 ### 4.5 Login-Endpunkte
 
-- `GET /api/auth-options`: Dummy-Accounts fuer Loginseite
+- `GET /api/auth-options`: Dummy-Accounts für Loginseite
 - `POST /login`: Login
 - `GET /api/me`: Session-User
 - `GET /logout`: Session beenden
@@ -185,7 +191,7 @@ function expandRole(roleName, roleDefinitions, visited = new Set()) {
 - `canEditCase(user, damageCase)`
 - `isOwner(user, damageCase)`
 
-### 5.3 Statusabhaengige Sichtbarkeit/Bearbeitung
+### 5.3 Statusabhängige Sichtbarkeit/Bearbeitung
 
 ```js
 if (hasPermission(user, "approve_case") && status === "Leitung") {
@@ -224,14 +230,14 @@ function runWithScope(scope, fn) {
 - `SYSVERSICHERUNGEN`
 - `SYSKASSEN`
 
-### 6.4 Schluesselfunktionen
+### 6.4 Schlüsselfunktionen
 
 Benutzer:
 
 - `upsertUser(user)`
 - `getUsers()`
 
-Schadensfaelle:
+Schadensfälle:
 
 - `createDamageCase(damageCase)`
 - `listDamageCases(options)`
@@ -314,7 +320,7 @@ if (payload.costsComplete) {
 }
 ```
 
-### 7.2 Voraussetzungen fuer "Kosten komplett"
+### 7.2 Voraussetzungen für "Kosten komplett"
 
 Servervalidierung:
 
@@ -345,7 +351,7 @@ function hasValidCostsCompletePrerequisites(damageCase) {
 
 ### 7.4 Gesperrte Kostenfelder nach Abschluss
 
-Nach `costsComplete = true` sind relevante Kostenfelder nicht mehr aenderbar.
+Nach `costsComplete = trü` sind relevante Kostenfelder nicht mehr änderbar.
 
 ## 8. Lookup- und Hilfsfunktionen
 
@@ -359,14 +365,14 @@ Nach `costsComplete = true` sind relevante Kostenfelder nicht mehr aenderbar.
 - `GET /api/lookup/street`
 - `GET /api/lookup/address`
 
-Internet-Lookup ueber Nominatim mit Timeout/Fallback:
+Internet-Lookup über Nominatim mit Timeout/Fallback:
 
 ```js
 const controller = new AbortController();
 const timeoutId = setTimeout(() => controller.abort(), 5000);
 ```
 
-Bei transienten Fehlern wird auf lokale Fallback-Daten gearbeitet (wo verfuegbar).
+Bei transienten Fehlern wird auf lokale Fallback-Daten gearbeitet (wo verfügbar).
 
 ## 9. API-Referenz nach Bereich
 
@@ -381,7 +387,7 @@ Bei transienten Fehlern wird auf lokale Fallback-Daten gearbeitet (wo verfuegbar
 - `GET /cash-desk-catalog`
 - `GET /db-config`
 
-### 9.2 Schadensfaelle
+### 9.2 Schadensfälle
 
 - `GET /api/damage-cases?scope=own|department|all`
 - `GET /api/damage-cases/:id`
@@ -445,7 +451,7 @@ Bei transienten Fehlern wird auf lokale Fallback-Daten gearbeitet (wo verfuegbar
 
 ### 10.2 Zentrale Client-Logik (`src/create-damage-case.js`)
 
-State-Objekt enthaelt u. a.:
+State-Objekt enthält u. a.:
 
 - `cases`
 - `catalogItems`
@@ -494,8 +500,8 @@ function requirePermission(permission) {
 
 Technische Hinweise:
 
-- Session-Cookie aktuell mit `secure: false` (lokal ohne HTTPS moeglich)
-- produktiv sollte HTTPS mit gueltigen Zertifikaten aktiv sein
+- Session-Cookie aktuell mit `secure: false` (lokal ohne HTTPS möglich)
+- produktiv sollte HTTPS mit gültigen Zertifikaten aktiv sein
 - Fehler werden serverseitig geloggt, API liefert gezielte Fehlermeldungen
 
 ## 12. Wichtige Entwicklungsregeln
@@ -503,23 +509,23 @@ Technische Hinweise:
 1. Rechte nur in `src/rights.js` erweitern, nicht in Endpunkten duplizieren.
 2. SQL-Zugriffe nur in `src/db.js` pflegen.
 3. Neue Workflow-Status immer in beiden Schichten anpassen:
-   - Rechtepruefung (`canViewCase`, `canEditCase`)
+   - Rechteprüfung (`canViewCase`, `canEditCase`)
    - API-Workflow (`POST/PUT /api/damage-cases`)
-4. Neue Felder fuer Schadensfaelle in drei Stellen synchron halten:
+4. Neue Felder für Schadensfälle in drei Stellen synchron halten:
    - `sanitizeDamageCaseInput` in `server.mjs`
    - Persistenz in `src/db.js`
    - Form-Bindings in `src/create-damage-case.js`
-5. Kataloge bevorzugt soft-loeschen, damit Historie konsistent bleibt.
+5. Kataloge bevorzugt soft-löschen, damit Historie konsistent bleibt.
 
 ## 13. Typischer End-to-End-Ablauf
 
-1. Login ueber `/login` (Dummy oder AD).
-2. Rechteableitung ueber LDAP-Gruppen und Rollenmapping.
+1. Login über `/login` (Dummy oder AD).
+2. Rechteableitung über LDAP-Gruppen und Rollenmapping.
 3. Session-User wird gesetzt, Benutzer via `db.upsertUser` synchronisiert.
-4. Uebersicht laedt Faelle via `/api/damage-cases`.
-5. Detailseite laedt Fall und Katalogpositionen.
-6. Bei Aenderungen greifen Status-/Rechte-/Validierungsregeln serverseitig.
-7. Katalog-, Versicherungs- und Kassenstammdaten werden ueber Admin-APIs gepflegt.
+4. Übersicht lädt Fälle via `/api/damage-cases`.
+5. Detailseite lädt Fall und Katalogpositionen.
+6. Bei Änderungen greifen Status-/Rechte-/Validierungsregeln serverseitig.
+7. Katalog-, Versicherungs- und Kassenstammdaten werden über Admin-APIs gepflegt.
 
 ## 14. Kurzfazit
 
@@ -530,3 +536,15 @@ SaS3 ist als klare 3-Schichten-Struktur umgesetzt:
 - Datenhaltung in `src/db.js`
 
 Die wichtigsten Erweiterungspunkte sind bereits zentralisiert. Dadurch lassen sich neue Fachregeln, Felder und Rollen ohne verteilte Sonderlogik implementieren.
+
+## 15. Offene Punkte (bewusst nicht umgesetzt)
+
+Die folgenden Themen sind im aktuellen Stand als nächste Ausbaustufe vorgesehen:
+
+- Dateiupload inkl. revisionssicherer Ablage
+- SAP-Schnittstelle für Rechnungsübergabe und Rückmeldung zum Zahlungseingang
+
+Hinweis für die technische Umsetzung:
+
+- Beide Themen betreffen API, Berechtigungslogik, Persistenz und Betriebskonzept.
+- Bei Umsetzung sollten Integrations- und Regressionstests für den kompletten Workflow ergänzt werden.

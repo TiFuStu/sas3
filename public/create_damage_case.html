@@ -183,6 +183,7 @@
             <form id="damage-case-form">
                 <input type="hidden" id="case-id">
 
+                <h3 class="section-title">Allgemeines</h3>
                 <div class="form-grid">
                     <div>
                         <label class="form-group label">Schaden-Nr.</label>
@@ -210,9 +211,64 @@
                         <label class="form-group label">Bearbeiterkennung <span style="color: red;">*</span></label>
                         <input type="text" id="assigned-to" class="form-control" required readonly data-edit-control>
                     </div>
+                    <div>
+                        <label class="form-group label">SAP Debitor</label>
+                        <input type="text" id="sap-debitor" class="form-control" data-edit-control>
+                    </div>
+                    <div>
+                        <label class="form-group label">SAP Nr.</label>
+                        <input type="text" id="sap-number" class="form-control" data-edit-control>
+                    </div>
                     <div class="full-width">
                         <label class="form-group label">Ausführliche Beschreibung</label>
                         <textarea id="description" class="form-control" rows="4" data-edit-control></textarea>
+                    </div>
+                </div>
+
+                <h3 class="section-title">Erforderliche Arbeiten</h3>
+                <div class="required-works">
+                    <label class="checkbox-label"><input type="checkbox" class="required-work"
+                            value="Verwaltungsfahrzeug instandsetzen" data-edit-control> Verwaltungsfahrzeug
+                        instandsetzen</label>
+                    <label class="checkbox-label"><input type="checkbox" class="required-work" value="Absperrmaßnahmen"
+                            data-edit-control> Absperrmaßnahmen</label>
+                    <label class="checkbox-label"><input type="checkbox" class="required-work"
+                            value="Reinigung der Fahrbahn" data-edit-control> Reinigung der Fahrbahn</label>
+                    <label class="checkbox-label"><input type="checkbox" class="required-work"
+                            value="Beseitigung einer Ölspur" data-edit-control> Beseitigung einer Ölspur</label>
+                    <label class="checkbox-label"><input type="checkbox" class="required-work" value="Aufräumarbeiten"
+                            data-edit-control> Aufräumarbeiten</label>
+                    <label class="checkbox-label"><input type="checkbox" class="required-work"
+                            value="Ersatz von Verkehrseinrichtungen" data-edit-control> Ersatz von
+                        Verkehrseinrichtungen</label>
+                    <label class="checkbox-label"><input type="checkbox" class="required-work"
+                            value="Reparatur von Verkehrseinrichtungen" data-edit-control> Reparatur von
+                        Verkehrseinrichtungen</label>
+                    <label class="checkbox-label"><input type="checkbox" class="required-work"
+                            value="Instandsetzung der Grünanlage" data-edit-control> Instandsetzung der
+                        Grünanlage</label>
+                </div>
+                <div class="form-grid" style="margin-top: 1rem;">
+                    <div class="full-width">
+                        <label class="form-group label" for="required-work-custom">Eigener Arbeitspunkt (Freitext)</label>
+                        <input type="text" id="required-work-custom" class="form-control" data-edit-control
+                            placeholder="z. B. Sonderreinigung, externe Sicherung, sonstige Maßnahme">
+                    </div>
+                </div>
+
+                <h3 class="section-title">Aufnahme</h3>
+                <div class="form-grid">
+                    <div class="full-width">
+                        <label class="form-group label">Aufnehmende Dienststelle</label>
+                        <input type="text" id="recording-office" class="form-control" data-edit-control>
+                    </div>
+                    <div>
+                        <label class="form-group label">Polizei</label>
+                        <input type="text" id="police-station" class="form-control" data-edit-control>
+                    </div>
+                    <div>
+                        <label class="form-group label">Polizei Tagebuch-Nr.</label>
+                        <input type="text" id="police-diary-number" class="form-control" data-edit-control>
                     </div>
                 </div>
 
@@ -338,7 +394,7 @@
                     </div>
                 </div>
 
-                <h3 class="section-title">Haftung und Kosten</h3>
+                <h3 class="section-title">Haftung</h3>
                 <div class="form-grid">
                     <div>
                         <label class="form-group label">Versicherung</label>
@@ -381,97 +437,95 @@
                         <input type="email" id="insurance-email" class="form-control" data-edit-control>
                     </div>
                     <div>
-                        <label class="form-group label">Kasse</label>
-                        <select id="cash-desk" class="form-control" data-edit-control>
-                            <option value="">-- Kasse aus Katalog wählen --</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="form-group label">Sonstige Kosten (€)</label>
-                        <input type="number" id="other-costs" class="form-control" step="0.01" min="0"
-                            data-edit-control>
-                    </div>
-                    <div>
-                        <label class="form-group label">Offene Forderung (€)</label>
-                        <input type="number" id="open-claim-amount" class="form-control" step="0.01" min="0"
-                            data-edit-control>
-                    </div>
-                    <div>
                         <label class="form-group label">Wiedervorlage am</label>
                         <input type="date" id="follow-up-date" class="form-control" data-edit-control>
                     </div>
-                    <div class="full-width" style="margin-top: 1rem;">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="costs-complete" data-edit-control>
-                            <strong>Kosten komplett erfasst</strong>
-                        </label>
-                        <small id="costs-complete-requirements" style="display: block; margin-top: 0.35rem; color: var(--lbm-gray-dark);">
-                            Es fehlen noch die Voraussetzungen für "Kosten komplett erfasst".
-                        </small>
-                    </div>
                 </div>
 
-                <h3 class="section-title">Katalog und Kostenberechnung</h3>
+                <h3 class="section-title">Kostenberechnung</h3>
                 <div class="form-grid">
                     <div class="full-width">
                         <label class="form-group label">Material / Leistung auswählen</label>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <select id="catalog-select" class="form-control" style="flex: 1;">
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                            <select id="catalog-select" class="form-control" style="flex: 1;" data-edit-control>
                                 <option value="">-- Material/Leistung wählen --</option>
                             </select>
-                            <input type="number" id="catalog-menge" class="form-control" placeholder="Menge" step="0.01" min="1" value="1" style="width: 120px;">
+                            <input type="number" id="catalog-menge" class="form-control" placeholder="Menge" step="0.01" min="1" value="1" style="width: 120px;" data-edit-control>
                             <button type="button" id="catalog-add-btn" class="btn btn-primary" onclick="addCatalogPosition()">Hinzufügen</button>
+                        </div>
+
+                        <div id="catalog-items-section" style="display: none; margin-bottom: 1.5rem;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                                <thead>
+                                    <tr style="background-color: var(--lbm-gray-light); border-bottom: 1px solid var(--lbm-gray-dark);">
+                                        <th style="padding: 8px; text-align: left;">Position</th>
+                                        <th style="padding: 8px; text-align: center;">Einheit</th>
+                                        <th style="padding: 8px; text-align: center;">Menge</th>
+                                        <th style="padding: 8px; text-align: right;">Satz (€)</th>
+                                        <th style="padding: 8px; text-align: right;">Gesamt (€)</th>
+                                        <th style="padding: 8px; text-align: center;">Aktion</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="catalog-items-list">
+                                </tbody>
+                                <tfoot>
+                                    <tr style="border-top: 2px solid var(--lbm-blue); font-weight: bold;">
+                                        <td colspan="4" style="padding: 8px; text-align: right;">Katalog-Gesamt:</td>
+                                        <td style="padding: 8px; text-align: right; color: var(--lbm-blue);" id="catalog-total">0,00 €</td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <div class="form-grid" style="margin-bottom: 1.5rem;">
+                            <div>
+                                <label class="form-group label">Kasse</label>
+                                <select id="cash-desk" class="form-control" data-edit-control>
+                                    <option value="">-- Kasse aus Katalog wählen --</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-group label">Sonstige Kosten (€)</label>
+                                <input type="number" id="other-costs" class="form-control" step="0.01" min="0"
+                                    data-edit-control>
+                            </div>
+                            <div>
+                                <label class="form-group label">Offene Forderung (€)</label>
+                                <input type="number" id="open-claim-amount" class="form-control" step="0.01" min="0"
+                                    data-edit-control>
+                            </div>
+                        </div>
+
+                        <div style="background: var(--lbm-gray-light); padding: 1rem; border-radius: var(--border-radius); margin-bottom: 1rem; display: none;" id="costs-summary-section">
+                            <strong style="display: block; margin-bottom: 0.75rem; color: var(--lbm-blue);">Kostenzusammenfassung</strong>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.95rem;">
+                                <div>
+                                    <div style="color: var(--lbm-gray-dark); margin-bottom: 0.25rem;">Katalog-Positionen:</div>
+                                    <div style="font-weight: bold; font-size: 1.1rem;" id="sum-display-catalog">0,00 €</div>
+                                </div>
+                                <div>
+                                    <div style="color: var(--lbm-gray-dark); margin-bottom: 0.25rem;">Sonstige Kosten:</div>
+                                    <div style="font-weight: bold; font-size: 1.1rem;" id="sum-display-other">0,00 €</div>
+                                </div>
+                                <div style="grid-column: 1 / -1; border-top: 1px solid var(--lbm-blue); padding-top: 0.75rem; margin-top: 0.5rem;">
+                                    <label class="form-group label" for="sum-display-total-input" style="margin-bottom: 0.25rem;">Gesamtkosten (Katalog + Sonstige)</label>
+                                    <input type="text" id="sum-display-total-input" class="form-control" value="0,00 €" readonly>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="full-width" style="margin-top: 1rem;">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="costs-complete" data-edit-control>
+                                <strong>Kosten komplett erfasst</strong>
+                            </label>
+                            <small id="costs-complete-requirements" style="display: block; margin-top: 0.35rem; color: var(--lbm-gray-dark);">
+                                Es fehlen noch die Voraussetzungen für "Kosten komplett erfasst".
+                            </small>
                         </div>
                     </div>
                 </div>
 
-                <div id="catalog-items-section" style="display: none; margin-top: 1.5rem;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
-                        <thead>
-                            <tr style="background-color: #f0f0f0; border-bottom: 1px solid #ddd;">
-                                <th style="padding: 8px; text-align: left;">Position</th>
-                                <th style="padding: 8px; text-align: center;">Einheit</th>
-                                <th style="padding: 8px; text-align: center;">Menge</th>
-                                <th style="padding: 8px; text-align: right;">Satz (€)</th>
-                                <th style="padding: 8px; text-align: right;">Gesamt (€)</th>
-                                <th style="padding: 8px; text-align: center;">Aktion</th>
-                            </tr>
-                        </thead>
-                        <tbody id="catalog-items-list">
-                        </tbody>
-                        <tfoot>
-                            <tr style="border-top: 2px solid #003366; font-weight: bold;">
-                                <td colspan="4" style="padding: 8px; text-align: right;">Katalog-Gesamt:</td>
-                                <td style="padding: 8px; text-align: right;" id="catalog-total">0,00 €</td>
-                                <td></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-
-                <h3 class="section-title">Erforderliche Arbeiten</h3>
-                <div class="required-works">
-                    <label class="checkbox-label"><input type="checkbox" class="required-work"
-                            value="Verwaltungsfahrzeug instandsetzen" data-edit-control> Verwaltungsfahrzeug
-                        instandsetzen</label>
-                    <label class="checkbox-label"><input type="checkbox" class="required-work" value="Absperrmaßnahmen"
-                            data-edit-control> Absperrmaßnahmen</label>
-                    <label class="checkbox-label"><input type="checkbox" class="required-work"
-                            value="Reinigung der Fahrbahn" data-edit-control> Reinigung der Fahrbahn</label>
-                    <label class="checkbox-label"><input type="checkbox" class="required-work"
-                            value="Beseitigung einer Ölspur" data-edit-control> Beseitigung einer Ölspur</label>
-                    <label class="checkbox-label"><input type="checkbox" class="required-work" value="Aufräumarbeiten"
-                            data-edit-control> Aufräumarbeiten</label>
-                    <label class="checkbox-label"><input type="checkbox" class="required-work"
-                            value="Ersatz von Verkehrseinrichtungen" data-edit-control> Ersatz von
-                        Verkehrseinrichtungen</label>
-                    <label class="checkbox-label"><input type="checkbox" class="required-work"
-                            value="Reparatur von Verkehrseinrichtungen" data-edit-control> Reparatur von
-                        Verkehrseinrichtungen</label>
-                    <label class="checkbox-label"><input type="checkbox" class="required-work"
-                            value="Instandsetzung der Grünanlage" data-edit-control> Instandsetzung der
-                        Grünanlage</label>
-                </div>
             </form>
         </main>
     </div>

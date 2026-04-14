@@ -17,6 +17,8 @@ flowchart LR
   uc_view_all((Alle Faelle einsehen))
   uc_catalog_view((Katalog einsehen))
   uc_catalog_manage((Katalog verwalten))
+  uc_insurance_manage((Versicherungs-Katalog verwalten))
+  uc_cashdesk_manage((Kassen-Katalog verwalten))
   uc_rights_manage((Rechte-Mappings verwalten))
   uc_db_manage((DB-Konfiguration verwalten))
 
@@ -44,10 +46,14 @@ flowchart LR
 
   actor_admin --> uc_view_all
   actor_admin --> uc_catalog_manage
+  actor_admin --> uc_insurance_manage
+  actor_admin --> uc_cashdesk_manage
   actor_admin --> uc_rights_manage
   actor_admin --> uc_db_manage
 
   uc_edit_team -. voraussetzt .-> uc_overview
   uc_approve -. voraussetzt .-> uc_overview
   uc_catalog_manage -. voraussetzt .-> uc_catalog_view
+  uc_insurance_manage -. voraussetzt .-> uc_catalog_view
+  uc_cashdesk_manage -. voraussetzt .-> uc_catalog_view
 ```

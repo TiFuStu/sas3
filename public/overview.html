@@ -98,6 +98,10 @@
     #admin-link-cash-desk-catalog {
       display: none;
     }
+
+    #admin-link-catalog {
+      display: none;
+    }
   </style>
 </head>
 
@@ -119,6 +123,7 @@
       <div style="display: flex; gap: 1rem;">
         <a href="/rights" class="btn btn-secondary" id="admin-link-users">Rechteverwaltung</a>
         <a href="/db-config" class="btn btn-secondary" id="admin-link-db-config">Datenbank-Konfiguration</a>
+        <a href="/catalog" class="btn btn-secondary" id="admin-link-catalog">Kosten-Katalog</a>
         <a href="/insurance-catalog" class="btn btn-secondary" id="admin-link-insurance-catalog">Versicherungs-Katalog</a>
         <a href="/cash-desk-catalog" class="btn btn-secondary" id="admin-link-cash-desk-catalog">Kassen-Katalog</a>
         <a href="/create-damage-case" class="btn btn-primary" id="create-case-btn" style="display: none;">Neuer Fall</a>
@@ -173,6 +178,7 @@
         }
 
         if ((currentUser.permissions || []).includes('manage_catalog')) {
+          document.getElementById('admin-link-catalog').style.display = 'inline-block';
           document.getElementById('admin-link-insurance-catalog').style.display = 'inline-block';
           document.getElementById('admin-link-cash-desk-catalog').style.display = 'inline-block';
         }

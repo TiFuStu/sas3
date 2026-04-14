@@ -117,7 +117,8 @@
         ],
         "permissions": [
           "manage_users",
-          "view_all_cases"
+          "view_all_cases",
+          "manage_catalog"
         ]
       }
     },
@@ -130,12 +131,6 @@
       },
       {
         "groupName": "Azubi IT",
-        "roles": [
-          "bearbeiter"
-        ]
-      },
-      {
-        "groupName": "FT3-Dokumenten- und Wissensmanagement",
         "roles": [
           "erfasser"
         ]
