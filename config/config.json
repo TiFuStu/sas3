@@ -124,14 +124,15 @@
     },
     "groupMappings": [
       {
-        "groupName": "FT3-Verwaltungsverfahren und Microservices - Admin",
+        "groupName": "Azubi IT",
         "roles": [
           "admin"
         ]
       },
       {
-        "groupName": "Azubi IT",
+        "groupName": "FT3 DL5 HG",
         "roles": [
+          "admin",
           "erfasser"
         ]
       }
