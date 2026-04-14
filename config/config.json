@@ -50,7 +50,7 @@
     "username": "extranetservice",
     "password": "zeFDJk1Rh5HviNxTcsxM",
     "userFilter": "(&(sAMAccountName={{username}})(objectclass=user)(!(userAccountControl:1.2.840.113556.1.4.804:=8454242))(!(memberOf:1.2.840.113556.1.4.1941:=CN=,OU=Domain Controllers,DC=lsv,DC=intra)))",
-    "allowedGroupDN": "CN=sas3-erfasser,OU=Groups,DC=lsv,DC=intra",
+    "allowedGroupDN": "",
     "adminGroupDN": "CN=DL5 Azubi HG,OU=Gruppe,DC=lsv,DC=intra"
   },
   "db": {
@@ -60,8 +60,17 @@
     "port": 5432,
     "database": "sas3db"
   },
+  "dummyDb": {
+    "user": "postgres",
+    "password": "password",
+    "host": "localhost",
+    "port": 5432,
+    "database": "sas3db_dummy"
+  },
   "rights": {
-    "fallbackRoles": [],
+    "fallbackRoles": [
+      "viewer"
+    ],
     "roles": {
       "viewer": {
         "label": "Lesen eigener Faelle",
@@ -87,7 +96,8 @@
         "permissions": [
           "view_team_cases",
           "edit_team_cases",
-          "forward_to_leitung"
+          "forward_to_leitung",
+          "manage_catalog"
         ]
       },
       "leitung": {
@@ -113,27 +123,15 @@
     },
     "groupMappings": [
       {
-        "groupName": "sas3-erfasser",
-        "roles": [
-          "erfasser"
-        ]
-      },
-      {
-        "groupName": "sas3-bearbeiten",
-        "roles": [
-          "bearbeiter"
-        ]
-      },
-      {
-        "groupName": "sas3-leitung",
-        "roles": [
-          "leitung"
-        ]
-      },
-      {
-        "groupName": "sas3-admins",
+        "groupName": "FT3-Verwaltungsverfahren und Microservices - Admin",
         "roles": [
           "admin"
+        ]
+      },
+      {
+        "groupName": "Azubi IT",
+        "roles": [
+          "erfasser"
         ]
       }
     ]

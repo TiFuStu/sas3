@@ -86,6 +86,18 @@
     #admin-link-users {
       display: none;
     }
+
+    #admin-link-db-config {
+      display: none;
+    }
+
+    #admin-link-insurance-catalog {
+      display: none;
+    }
+
+    #admin-link-cash-desk-catalog {
+      display: none;
+    }
   </style>
 </head>
 
@@ -105,7 +117,10 @@
     <div class="dashboard-header">
       <h1>Fälle Übersicht</h1>
       <div style="display: flex; gap: 1rem;">
-        <a href="/users" class="btn btn-secondary" id="admin-link-users">Benutzerverwaltung</a>
+        <a href="/rights" class="btn btn-secondary" id="admin-link-users">Rechteverwaltung</a>
+        <a href="/db-config" class="btn btn-secondary" id="admin-link-db-config">Datenbank-Konfiguration</a>
+        <a href="/insurance-catalog" class="btn btn-secondary" id="admin-link-insurance-catalog">Versicherungs-Katalog</a>
+        <a href="/cash-desk-catalog" class="btn btn-secondary" id="admin-link-cash-desk-catalog">Kassen-Katalog</a>
         <a href="/create-damage-case" class="btn btn-primary" id="create-case-btn" style="display: none;">Neuer Fall</a>
       </div>
     </div>
@@ -154,6 +169,12 @@
 
         if (currentUser.isAdmin) {
           document.getElementById('admin-link-users').style.display = 'inline-block';
+          document.getElementById('admin-link-db-config').style.display = 'inline-block';
+        }
+
+        if ((currentUser.permissions || []).includes('manage_catalog')) {
+          document.getElementById('admin-link-insurance-catalog').style.display = 'inline-block';
+          document.getElementById('admin-link-cash-desk-catalog').style.display = 'inline-block';
         }
 
         loadCases('own');

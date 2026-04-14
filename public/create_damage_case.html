@@ -166,8 +166,8 @@
                 <div class="flex gap-1">
                     <button class="btn btn-secondary" id="new-case">Neuer Fall</button>
                     <button class="btn btn-primary" id="save-case">Speichern</button>
-                    <button class="btn btn-warning" id="forward-case" style="display: none;">An Leitung weiterleiten</button>
-                    <button class="btn btn-success" id="approve-case" style="display: none;">Prüfen & Freigeben</button>
+                    <button class="btn btn-secondary" id="forward-case" style="display: none;">An Leitung weiterleiten</button>
+                    <button class="btn btn-primary" id="approve-case" style="display: none;">Prüfen & Freigeben</button>
                 </div>
             </div>
 
@@ -216,7 +216,7 @@
                     </div>
                 </div>
 
-                <h3 class="section-title">Ort und Beteiligte</h3>
+                <h3 class="section-title">Unfallort</h3>
                 <div class="form-grid">
                     <div>
                         <label class="form-group label">Straße</label>
@@ -243,14 +243,46 @@
                         <label class="form-group label">km / Station</label>
                         <input type="text" id="km-station" class="form-control" data-edit-control>
                     </div>
+                </div>
+
+                <h3 class="section-title">Verursacher</h3>
+                <div class="form-grid">
                     <div>
                         <label class="form-group label">Verursacher (Name) <span style="color: red;">*</span></label>
                         <input type="text" id="responsible-party" class="form-control" required data-edit-control>
                     </div>
-                    <div>
+                    <div class="full-width">
                         <label class="form-group label">Verursacher (Anschrift)</label>
-                        <input type="text" id="responsible-party-address" class="form-control" data-edit-control>
+                        <input type="hidden" id="responsible-party-address" data-edit-control>
+                        <div class="form-grid" style="gap: 1rem;">
+                            <div>
+                                <label class="form-group label" for="responsible-party-postal-code">PLZ</label>
+                                <input type="text" id="responsible-party-postal-code" class="form-control" list="responsible-party-postal-code-list" data-edit-control autocomplete="off">
+                                <datalist id="responsible-party-postal-code-list"></datalist>
+                            </div>
+                            <div>
+                                <label class="form-group label" for="responsible-party-city">Ort</label>
+                                <input type="text" id="responsible-party-city" class="form-control" list="responsible-party-city-list" data-edit-control autocomplete="off">
+                                <datalist id="responsible-party-city-list"></datalist>
+                            </div>
+                            <div>
+                                <label class="form-group label" for="responsible-party-street">Straße</label>
+                                <input type="text" id="responsible-party-street" class="form-control" list="responsible-party-street-list" data-edit-control autocomplete="off">
+                                <datalist id="responsible-party-street-list"></datalist>
+                            </div>
+                            <div>
+                                <label class="form-group label" for="responsible-party-house-number">Hausnummer</label>
+                                <input type="text" id="responsible-party-house-number" class="form-control" data-edit-control autocomplete="off">
+                            </div>
+                        </div>
+                        <small id="responsible-party-address-hint" style="display: block; margin-top: 0.35rem; color: var(--lbm-gray-dark);">
+                            PLZ eingeben und passende Orte und Straßen aus dem Verzeichnis auswählen.
+                        </small>
                     </div>
+                </div>
+
+                <h3 class="section-title">Beteiligte / Fahrzeug</h3>
+                <div class="form-grid">
                     <div>
                         <label class="form-group label">Kfz-Kennzeichen</label>
                         <input type="text" id="plate-number" class="form-control" data-edit-control>
@@ -261,6 +293,51 @@
                     </div>
                 </div>
 
+                <h3 class="section-title">Versicherung aus Katalog</h3>
+                <div class="form-grid">
+                    <div class="full-width">
+                        <label class="form-group label">Versicherung auswählen</label>
+                        <select id="insurance-catalog-select" class="form-control" data-edit-control>
+                            <option value="">-- Versicherung aus Katalog wählen --</option>
+                        </select>
+                        <small style="display: block; margin-top: 0.5rem; color: #666;">
+                            Nach der Auswahl werden die Stammdaten der Versicherung übernommen und gesperrt.
+                        </small>
+                    </div>
+                    <div>
+                        <label class="form-group label">Versicherer</label>
+                        <input type="text" id="insurance-master-name" class="form-control" readonly data-edit-control>
+                    </div>
+                    <div>
+                        <label class="form-group label">Ansprechpartner</label>
+                        <input type="text" id="insurance-master-contact" class="form-control" readonly data-edit-control>
+                    </div>
+                    <div>
+                        <label class="form-group label">Telefon</label>
+                        <input type="text" id="insurance-master-phone" class="form-control" readonly data-edit-control>
+                    </div>
+                    <div>
+                        <label class="form-group label">E-Mail</label>
+                        <input type="email" id="insurance-master-email" class="form-control" readonly data-edit-control>
+                    </div>
+                    <div class="full-width">
+                        <label class="form-group label">Straße</label>
+                        <input type="text" id="insurance-master-street" class="form-control" readonly data-edit-control>
+                    </div>
+                    <div>
+                        <label class="form-group label">PLZ</label>
+                        <input type="text" id="insurance-master-zip" class="form-control" readonly data-edit-control>
+                    </div>
+                    <div>
+                        <label class="form-group label">Ort</label>
+                        <input type="text" id="insurance-master-city" class="form-control" readonly data-edit-control>
+                    </div>
+                    <div>
+                        <label class="form-group label">Land</label>
+                        <input type="text" id="insurance-master-country" class="form-control" readonly data-edit-control>
+                    </div>
+                </div>
+
                 <h3 class="section-title">Haftung und Kosten</h3>
                 <div class="form-grid">
                     <div>
@@ -268,8 +345,28 @@
                         <input type="text" id="insurance" class="form-control" data-edit-control>
                     </div>
                     <div>
-                        <label class="form-group label">Rechnung an</label>
+                        <label class="form-group label">Rechnung an *</label>
+                        <select id="invoice-recipient-type" class="form-control" data-edit-control>
+                            <option value="verursacher">Verursacher</option>
+                            <option value="versicherung">Versicherung</option>
+                            <option value="andere">Andere Stelle</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-group label">Rechnungsempfänger *</label>
                         <input type="text" id="invoice-to" class="form-control" data-edit-control>
+                    </div>
+                    <div>
+                        <label class="form-group label">Rechnungs-E-Mail *</label>
+                        <input type="email" id="invoice-email" class="form-control" data-edit-control>
+                    </div>
+                    <div>
+                        <label class="form-group label">Rechnungs-Telefon *</label>
+                        <input type="text" id="invoice-phone" class="form-control" data-edit-control>
+                    </div>
+                    <div class="full-width">
+                        <label class="form-group label">Rechnungsadresse *</label>
+                        <input type="text" id="invoice-address" class="form-control" data-edit-control>
                     </div>
                     <div>
                         <label class="form-group label">Versicherungsschein-Nr.</label>
@@ -285,7 +382,9 @@
                     </div>
                     <div>
                         <label class="form-group label">Kasse</label>
-                        <input type="text" id="cash-desk" class="form-control" data-edit-control>
+                        <select id="cash-desk" class="form-control" data-edit-control>
+                            <option value="">-- Kasse aus Katalog wählen --</option>
+                        </select>
                     </div>
                     <div>
                         <label class="form-group label">Sonstige Kosten (€)</label>
@@ -306,7 +405,48 @@
                             <input type="checkbox" id="costs-complete" data-edit-control>
                             <strong>Kosten komplett erfasst</strong>
                         </label>
+                        <small id="costs-complete-requirements" style="display: block; margin-top: 0.35rem; color: var(--lbm-gray-dark);">
+                            Es fehlen noch die Voraussetzungen für "Kosten komplett erfasst".
+                        </small>
                     </div>
+                </div>
+
+                <h3 class="section-title">Katalog und Kostenberechnung</h3>
+                <div class="form-grid">
+                    <div class="full-width">
+                        <label class="form-group label">Material / Leistung auswählen</label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <select id="catalog-select" class="form-control" style="flex: 1;">
+                                <option value="">-- Material/Leistung wählen --</option>
+                            </select>
+                            <input type="number" id="catalog-menge" class="form-control" placeholder="Menge" step="0.01" min="1" value="1" style="width: 120px;">
+                            <button type="button" id="catalog-add-btn" class="btn btn-primary" onclick="addCatalogPosition()">Hinzufügen</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="catalog-items-section" style="display: none; margin-top: 1.5rem;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                        <thead>
+                            <tr style="background-color: #f0f0f0; border-bottom: 1px solid #ddd;">
+                                <th style="padding: 8px; text-align: left;">Position</th>
+                                <th style="padding: 8px; text-align: center;">Einheit</th>
+                                <th style="padding: 8px; text-align: center;">Menge</th>
+                                <th style="padding: 8px; text-align: right;">Satz (€)</th>
+                                <th style="padding: 8px; text-align: right;">Gesamt (€)</th>
+                                <th style="padding: 8px; text-align: center;">Aktion</th>
+                            </tr>
+                        </thead>
+                        <tbody id="catalog-items-list">
+                        </tbody>
+                        <tfoot>
+                            <tr style="border-top: 2px solid #003366; font-weight: bold;">
+                                <td colspan="4" style="padding: 8px; text-align: right;">Katalog-Gesamt:</td>
+                                <td style="padding: 8px; text-align: right;" id="catalog-total">0,00 €</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
                 </div>
 
                 <h3 class="section-title">Erforderliche Arbeiten</h3>

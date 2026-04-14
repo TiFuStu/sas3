@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Versicherungs-Katalog - SaS3</title>
+  <link rel="stylesheet" href="/src/lbm.css">
+  <style>
+    body {
+      background-color: var(--lbm-gray-light);
+    }
+
+    .page-shell {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 2rem;
+    }
+
+    .hero {
+      background: var(--lbm-white);
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      padding: 1.75rem 2rem;
+      margin-bottom: 2rem;
+      border-top: 4px solid var(--lbm-blue);
+    }
+
+    .hero-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--lbm-blue);
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 2rem;
+      color: var(--lbm-text);
+    }
+
+    .lead {
+      margin: 0;
+      max-width: 72ch;
+      color: var(--lbm-gray-dark);
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .button {
+      padding: 0.5rem 1rem;
+    }
+
+    .button.primary {
+      background-color: var(--lbm-blue);
+      color: var(--lbm-white);
+    }
+
+    .button.secondary {
+      background-color: var(--lbm-gray);
+      color: var(--lbm-text);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    .card {
+      background: var(--lbm-white);
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 1.5rem 1.5rem 0;
+    }
+
+    .card-header h2 {
+      margin: 0;
+      color: var(--lbm-blue);
+      font-size: 1.25rem;
+    }
+
+    .card-header p {
+      margin: 10px 0 0;
+      color: var(--lbm-gray-dark);
+    }
+
+    .card-body {
+      padding: 1.5rem;
+    }
+
+    .status-message {
+      display: none;
+      margin: 0 0 18px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      font-weight: 600;
+    }
+
+    .status-message.ok {
+      display: block;
+      background: #e8f5e9;
+      color: #1c7d3c;
+      border: 1px solid #c3e6cb;
+    }
+
+    .status-message.error {
+      display: block;
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.25rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--lbm-text);
+    }
+
+    input, textarea {
+      width: 100%;
+      box-sizing: border-box;
+      border-radius: var(--border-radius);
+      border: 1px solid #ccc;
+      background: var(--lbm-white);
+      padding: 0.75rem;
+      font: inherit;
+      color: var(--lbm-text);
+      transition: var(--transition);
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--lbm-blue);
+      box-shadow: 0 0 0 2px rgba(0, 74, 143, 0.2);
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .toggle-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      padding: 6px 0;
+    }
+
+    .toggle-row input {
+      width: auto;
+      margin: 0;
+      transform: scale(1.1);
+    }
+
+    .button-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .toolbar input {
+      min-width: min(100%, 320px);
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      text-align: left;
+      padding: 0.9rem 1rem;
+      border-bottom: 1px solid var(--lbm-gray-light);
+      background-color: var(--lbm-gray-light);
+      color: var(--lbm-text);
+    }
+
+    tbody td {
+      padding: 1rem;
+      border-bottom: 1px solid var(--lbm-gray-light);
+      vertical-align: top;
+      color: var(--lbm-text);
+    }
+
+    tbody tr:hover {
+      background-color: #fcfcfc;
+    }
+
+    .muted {
+      color: var(--lbm-gray-dark);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.3rem 0.7rem;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .status-pill.active {
+      background-color: #e8f5e9;
+      color: #1c7d3c;
+    }
+
+    .status-pill.inactive {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .actions .button {
+      padding: 0.35rem 0.75rem;
+      font-size: 0.85rem;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--lbm-gray-dark);
+    }
+
+    .address-block {
+      line-height: 1.45;
+    }
+
+    .footer-note {
+      padding: 0 1.5rem 1.5rem;
+      color: var(--lbm-gray-dark);
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 760px) {
+      .page-shell {
+        padding: 16px;
+      }
+
+      .hero,
+      .card {
+        border-radius: var(--border-radius);
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .toolbar {
+        align-items: stretch;
+      }
+
+      .toolbar input {
+        min-width: 0;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo-container">
+      <img src="src/lbm.png" alt="LBM Logo">
+      <span class="header-title">SaS3 - Versicherungs-Katalog</span>
+    </div>
+    <div class="user-menu">
+      <a href="/overview" class="btn btn-secondary">Zurück zur Übersicht</a>
+    </div>
+  </header>
+
+  <div class="page-shell">
+    <section class="hero">
+      <div class="hero-top">
+        <div>
+          <div class="eyebrow">LBM Rheinland-Pfalz</div>
+          <h1>Versicherungs-Katalog</h1>
+          <p class="lead">
+            Hier können Schadensteam und Leitung Versicherungen mit Ansprechpartnern, Adressen und Kontaktdaten
+            hinterlegen. Die Einträge lassen sich zentral pflegen und bei Bedarf für die Fallbearbeitung nutzen.
+          </p>
+        </div>
+        <div class="hero-actions">
+          <a href="/overview" class="btn btn-secondary">Zur Übersicht</a>
+          <button id="reloadButton" class="btn btn-primary" type="button">Aktualisieren</button>
+        </div>
+      </div>
+    </section>
+
+    <div id="statusMessage" class="status-message"></div>
+
+    <div class="grid">
+      <section class="card">
+        <div class="card-header">
+          <h2 id="formTitle">Neue Versicherung</h2>
+          <p id="formSubtitle">Versicherungseinträge mit Kontaktdaten und Adresse anlegen oder bearbeiten.</p>
+        </div>
+        <div class="card-body">
+          <form id="insuranceForm">
+            <div class="form-grid">
+              <div class="form-group full">
+                <label for="name">Versicherungsname *</label>
+                <input id="name" type="text" class="form-control" placeholder="z. B. HUK-Coburg" autocomplete="organization">
+              </div>
+              <div class="form-group">
+                <label for="contactPerson">Ansprechpartner</label>
+                <input id="contactPerson" type="text" class="form-control" placeholder="z. B. Frau Müller" autocomplete="name">
+              </div>
+              <div class="form-group">
+                <label for="phone">Telefon</label>
+                <input id="phone" type="tel" class="form-control" placeholder="z. B. +49 611 123456">
+              </div>
+              <div class="form-group">
+                <label for="email">E-Mail</label>
+                <input id="email" type="email" class="form-control" placeholder="z. B. schaden@beispiel.de" autocomplete="email">
+              </div>
+              <div class="form-group">
+                <label for="country">Land</label>
+                <input id="country" type="text" class="form-control" value="Deutschland" autocomplete="country-name">
+              </div>
+              <div class="form-group full">
+                <label for="street">Straße und Hausnummer</label>
+                <input id="street" type="text" class="form-control" placeholder="Musterstraße 12" autocomplete="address-line1">
+              </div>
+              <div class="form-group">
+                <label for="zipCode">PLZ</label>
+                <input id="zipCode" type="text" class="form-control" placeholder="12345" autocomplete="postal-code">
+              </div>
+              <div class="form-group">
+                <label for="city">Ort</label>
+                <input id="city" type="text" class="form-control" placeholder="Musterstadt" autocomplete="address-level2">
+              </div>
+              <div class="form-group full">
+                <label for="description">Hinweise</label>
+                <textarea id="description" class="form-control" placeholder="Zusätzliche Informationen, Schadennummern, Erreichbarkeiten, Zuständigkeiten"></textarea>
+              </div>
+              <div class="form-group full">
+                <div class="toggle-row">
+                  <input id="active" type="checkbox" checked>
+                  <label for="active" style="margin: 0;">Eintrag aktiv</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="button-row">
+              <button class="btn btn-primary" type="submit" id="saveButton">Versicherung speichern</button>
+              <button class="btn btn-secondary" type="button" id="cancelButton" style="display: none;">Bearbeitung abbrechen</button>
+            </div>
+          </form>
+        </div>
+        <div class="footer-note">
+          Pflichtfeld ist nur der Versicherungsname. Adresse und Kontakte können schrittweise ergänzt werden.
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>Vorhandene Versicherungen</h2>
+          <p>Aktive und inaktive Einträge im Überblick, inklusive Kontaktdaten und Adresse.</p>
+        </div>
+        <div class="card-body">
+          <div class="toolbar">
+            <input id="searchInput" type="search" placeholder="Nach Name, Ort oder E-Mail suchen">
+            <div class="muted" id="resultInfo">0 Einträge</div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Versicherung</th>
+                  <th>Kontakt</th>
+                  <th>Adresse</th>
+                  <th>Erreichbarkeit</th>
+                  <th>Status</th>
+                  <th>Aktionen</th>
+                </tr>
+              </thead>
+              <tbody id="insuranceBody">
+                <tr>
+                  <td colspan="6" class="empty-state">Lade Versicherungsdaten...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      items: [],
+      editingId: null,
+      searchTerm: "",
+    };
+
+    const elements = {
+      form: document.getElementById("insuranceForm"),
+      formTitle: document.getElementById("formTitle"),
+      formSubtitle: document.getElementById("formSubtitle"),
+      saveButton: document.getElementById("saveButton"),
+      cancelButton: document.getElementById("cancelButton"),
+      searchInput: document.getElementById("searchInput"),
+      resultInfo: document.getElementById("resultInfo"),
+      statusMessage: document.getElementById("statusMessage"),
+      insuranceBody: document.getElementById("insuranceBody"),
+      reloadButton: document.getElementById("reloadButton"),
+      name: document.getElementById("name"),
+      contactPerson: document.getElementById("contactPerson"),
+      phone: document.getElementById("phone"),
+      email: document.getElementById("email"),
+      street: document.getElementById("street"),
+      zipCode: document.getElementById("zipCode"),
+      city: document.getElementById("city"),
+      country: document.getElementById("country"),
+      description: document.getElementById("description"),
+      active: document.getElementById("active"),
+    };
+
+    async function apiFetch(url, options = {}) {
+      const response = await fetch(url, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(options.headers || {}),
+        },
+        ...options,
+      });
+
+      if (!response.ok) {
+        let message = `HTTP ${response.status}`;
+        try {
+          const error = await response.json();
+          message = error.error || message;
+        } catch (_error) {
+          const text = await response.text();
+          if (text) {
+            message = text;
+          }
+        }
+        throw new Error(message);
+      }
+
+      return response.json();
+    }
+
+    function showStatus(message, type) {
+      elements.statusMessage.textContent = message;
+      elements.statusMessage.className = `status-message ${type}`;
+      window.clearTimeout(showStatus.timeoutId);
+      showStatus.timeoutId = window.setTimeout(() => {
+        elements.statusMessage.className = "status-message";
+      }, 5000);
+    }
+
+    function getFormData() {
+      return {
+        name: elements.name.value.trim(),
+        contactPerson: elements.contactPerson.value.trim(),
+        phone: elements.phone.value.trim(),
+        email: elements.email.value.trim(),
+        street: elements.street.value.trim(),
+        zipCode: elements.zipCode.value.trim(),
+        city: elements.city.value.trim(),
+        country: elements.country.value.trim() || "Deutschland",
+        description: elements.description.value.trim(),
+        active: elements.active.checked,
+      };
+    }
+
+    function clearForm() {
+      elements.form.reset();
+      elements.country.value = "Deutschland";
+      elements.active.checked = true;
+      state.editingId = null;
+      elements.formTitle.textContent = "Neue Versicherung";
+      elements.formSubtitle.textContent = "Versicherungseinträge mit Kontaktdaten und Adresse anlegen oder bearbeiten.";
+      elements.saveButton.textContent = "Versicherung speichern";
+      elements.cancelButton.style.display = "none";
+    }
+
+    function fillForm(item) {
+      elements.name.value = item.name || "";
+      elements.contactPerson.value = item.contactPerson || "";
+      elements.phone.value = item.phone || "";
+      elements.email.value = item.email || "";
+      elements.street.value = item.street || "";
+      elements.zipCode.value = item.zipCode || "";
+      elements.city.value = item.city || "";
+      elements.country.value = item.country || "Deutschland";
+      elements.description.value = item.description || "";
+      elements.active.checked = item.active !== false;
+    }
+
+    function startEdit(id) {
+      const item = state.items.find((entry) => entry.id === id);
+      if (!item) {
+        return;
+      }
+
+      state.editingId = id;
+      fillForm(item);
+      elements.formTitle.textContent = `Versicherung bearbeiten: ${item.name}`;
+      elements.formSubtitle.textContent = "Die Änderungen werden direkt in den Katalog übernommen.";
+      elements.saveButton.textContent = "Änderungen speichern";
+      elements.cancelButton.style.display = "inline-flex";
+      elements.name.focus();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function buildAddress(item) {
+      const lines = [];
+      if (item.street) {
+        lines.push(item.street);
+      }
+      const cityLine = [item.zipCode, item.city].filter(Boolean).join(" ");
+      if (cityLine) {
+        lines.push(cityLine);
+      }
+      if (item.country) {
+        lines.push(item.country);
+      }
+      return lines.length ? lines.join("<br>") : '<span class="muted">Keine Adresse hinterlegt</span>';
+    }
+
+    function buildContact(item) {
+      const parts = [];
+      if (item.contactPerson) {
+        parts.push(`<div><strong>${escapeHtml(item.contactPerson)}</strong></div>`);
+      }
+      if (item.phone) {
+        parts.push(`<div>${escapeHtml(item.phone)}</div>`);
+      }
+      return parts.length ? parts.join("") : '<span class="muted">Kein Ansprechpartner hinterlegt</span>';
+    }
+
+    function buildReachability(item) {
+      const parts = [];
+      if (item.email) {
+        parts.push(`<div><a href="mailto:${escapeHtml(item.email)}">${escapeHtml(item.email)}</a></div>`);
+      }
+      if (!item.email && !item.phone) {
+        parts.push('<span class="muted">Keine Kontaktwege hinterlegt</span>');
+      }
+      return parts.join("");
+    }
+
+    function getFilteredItems() {
+      const term = state.searchTerm.toLowerCase();
+      if (!term) {
+        return state.items;
+      }
+
+      return state.items.filter((item) => {
+        return [item.name, item.contactPerson, item.phone, item.email, item.street, item.zipCode, item.city, item.country]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(term));
+      });
+    }
+
+    function renderTable() {
+      const items = getFilteredItems();
+      elements.resultInfo.textContent = `${items.length} Einträge`;
+
+      if (items.length === 0) {
+        elements.insuranceBody.innerHTML = '<tr><td colspan="6" class="empty-state">Keine Versicherungen gefunden.</td></tr>';
+        return;
+      }
+
+      elements.insuranceBody.innerHTML = items.map((item) => `
+        <tr>
+          <td>
+            <strong>${escapeHtml(item.name)}</strong>
+            ${item.description ? `<div class="muted" style="margin-top: 6px;">${escapeHtml(item.description)}</div>` : ""}
+          </td>
+          <td>${buildContact(item)}</td>
+          <td><div class="address-block">${buildAddress(item)}</div></td>
+          <td>${buildReachability(item)}</td>
+          <td>
+            <span class="status-pill ${item.active ? "active" : "inactive"}">
+              ${item.active ? "Aktiv" : "Inaktiv"}
+            </span>
+          </td>
+          <td>
+            <div class="actions">
+              <button type="button" class="btn btn-secondary" data-action="edit" data-id="${escapeHtml(item.id)}">Bearbeiten</button>
+              <button type="button" class="btn btn-secondary" data-action="delete" data-id="${escapeHtml(item.id)}">Löschen</button>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    async function loadInsuranceCatalog() {
+      try {
+        state.items = await apiFetch("/api/admin/insurance-catalog");
+        renderTable();
+      } catch (error) {
+        elements.insuranceBody.innerHTML = '<tr><td colspan="6" class="empty-state" style="color: #a51d2d;">Versicherungs-Katalog konnte nicht geladen werden.</td></tr>';
+        showStatus(`Katalog konnte nicht geladen werden: ${error.message}`, "error");
+      }
+    }
+
+    async function saveInsurance(event) {
+      event.preventDefault();
+
+      const payload = getFormData();
+      if (!payload.name) {
+        showStatus("Versicherungsname ist erforderlich", "error");
+        return;
+      }
+
+      const editing = Boolean(state.editingId);
+      const url = editing ? `/api/admin/insurance-catalog/${encodeURIComponent(state.editingId)}` : "/api/admin/insurance-catalog";
+      const method = editing ? "PUT" : "POST";
+
+      try {
+        await apiFetch(url, {
+          method,
+          body: JSON.stringify(payload),
+        });
+
+        showStatus(editing ? "Versicherung aktualisiert" : "Versicherung angelegt", "ok");
+        clearForm();
+        await loadInsuranceCatalog();
+      } catch (error) {
+        showStatus(`Speichern fehlgeschlagen: ${error.message}`, "error");
+      }
+    }
+
+    async function deleteInsurance(id) {
+      const item = state.items.find((entry) => entry.id === id);
+      if (!item) {
+        return;
+      }
+
+      if (!confirm(`Versicherung "${item.name}" wirklich deaktivieren?`)) {
+        return;
+      }
+
+      try {
+        await apiFetch(`/api/admin/insurance-catalog/${encodeURIComponent(id)}`, {
+          method: "DELETE",
+          body: JSON.stringify({}),
+        });
+        showStatus("Versicherung deaktiviert", "ok");
+        await loadInsuranceCatalog();
+      } catch (error) {
+        showStatus(`Löschen fehlgeschlagen: ${error.message}`, "error");
+      }
+    }
+
+    function escapeHtml(value) {
+      const div = document.createElement("div");
+      div.textContent = String(value ?? "");
+      return div.innerHTML;
+    }
+
+    elements.form.addEventListener("submit", saveInsurance);
+    elements.cancelButton.addEventListener("click", clearForm);
+    elements.reloadButton.addEventListener("click", loadInsuranceCatalog);
+    elements.searchInput.addEventListener("input", (event) => {
+      state.searchTerm = event.target.value;
+      renderTable();
+    });
+
+    elements.insuranceBody.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-action]");
+      if (!button) {
+        return;
+      }
+
+      const { action, id } = button.dataset;
+      if (action === "edit") {
+        startEdit(id);
+      } else if (action === "delete") {
+        deleteInsurance(id);
+      }
+    });
+
+    clearForm();
+    loadInsuranceCatalog();
+  </script>
+</body>
+</html>

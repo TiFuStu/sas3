@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Datenbank-Konfiguration | SaS3</title>
+  <link rel="stylesheet" href="src/lbm.css">
+  <style>
+    .config-section {
+      background: var(--lbm-white);
+      border-radius: var(--border-radius);
+      border-left: 4px solid var(--lbm-blue);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--box-shadow);
+    }
+
+    .config-section h2 {
+      margin-top: 0;
+      color: var(--lbm-blue);
+      font-size: 1.25rem;
+    }
+
+    .db-form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group label {
+      font-weight: bold;
+      margin-bottom: 0.4rem;
+      color: var(--lbm-text);
+    }
+
+    .form-group input {
+      padding: 0.6rem;
+      border: 1px solid var(--lbm-gray);
+      border-radius: var(--border-radius);
+      font-size: 1rem;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--lbm-blue);
+      box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.1);
+    }
+
+    .form-group input[type="password"] {
+      font-family: monospace;
+      letter-spacing: 0.1em;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: var(--border-radius);
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: var(--lbm-blue);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #003366;
+    }
+
+    .btn-secondary {
+      background: var(--lbm-gray);
+      color: var(--lbm-text);
+    }
+
+    .btn-secondary:hover {
+      background: var(--lbm-gray-dark);
+    }
+
+    .status-message {
+      min-height: 1.5rem;
+      margin-top: 1rem;
+      padding: 0.75rem;
+      border-radius: var(--border-radius);
+      display: none;
+    }
+
+    .status-message.show {
+      display: block;
+    }
+
+    .status-message.success {
+      background: #e8f5e9;
+      color: #1c7d3c;
+      border: 1px solid #4caf50;
+    }
+
+    .status-message.error {
+      background: #ffebee;
+      color: #b00020;
+      border: 1px solid #f44336;
+    }
+
+    .info-box {
+      background: #eef4fb;
+      border: 1px solid #c9dbee;
+      border-left: 4px solid var(--lbm-blue);
+      border-radius: var(--border-radius);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+      color: var(--lbm-text);
+    }
+
+    .info-box strong {
+      color: var(--lbm-blue);
+    }
+
+    .two-column {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 768px) {
+      .two-column {
+        grid-template-columns: 1fr;
+      }
+
+      .db-form {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="logo-container">
+      <img src="src/lbm.png" alt="LBM Logo">
+      <span class="header-title">SaS3 - Datenbank-Konfiguration</span>
+    </div>
+  </header>
+
+  <div class="container">
+    <section class="config-section">
+      <h1>Datenbank-Konfiguration</h1>
+      <p>Hier können die Zugangsdaten für die Produktiv- und Dummy-Datenbank konfiguriert werden.</p>
+    </section>
+
+    <div class="two-column">
+      <!-- Produktiv Database -->
+      <section class="config-section">
+        <h2>Produktiv-Datenbank</h2>
+        <div class="info-box">
+          <strong>Hinweis:</strong> Alle erforderlichen Felder müssen ausgefüllt sein. Nach dem Speichern wird die Verbindung
+          automatisch getestet.
+        </div>
+
+        <form id="main-db-form" class="db-form">
+          <div class="form-group">
+            <label for="main-host">Host</label>
+            <input id="main-host" type="text" placeholder="z.B. localhost oder 192.168.x.x" required>
+          </div>
+          <div class="form-group">
+            <label for="main-port">Port</label>
+            <input id="main-port" type="number" placeholder="5432" min="1" max="65535" required>
+          </div>
+          <div class="form-group">
+            <label for="main-database">Datenbankname</label>
+            <input id="main-database" type="text" placeholder="z.B. sas3db" required>
+          </div>
+          <div class="form-group">
+            <label for="main-user">Benutzer</label>
+            <input id="main-user" type="text" placeholder="z.B. postgres" required>
+          </div>
+          <div class="form-group">
+            <label for="main-password">Passwort</label>
+            <input id="main-password" type="password" placeholder="Datenbankpasswort" required>
+          </div>
+        </form>
+
+        <div class="button-group">
+          <button class="btn btn-primary" onclick="saveMainDbConfig()">Speichern</button>
+          <button class="btn btn-secondary" onclick="testMainDbConnection()">Verbindung testen</button>
+        </div>
+        <div class="status-message" id="main-status"></div>
+      </section>
+
+      <!-- Dummy Database -->
+      <section class="config-section">
+        <h2>Dummy-Datenbank</h2>
+        <div class="info-box">
+          <strong>Hinweis:</strong> Diese Datenbank wird nur für Test-Benutzer verwendet. Alle erforderlichen Felder müssen
+          ausgefüllt sein.
+        </div>
+
+        <form id="dummy-db-form" class="db-form">
+          <div class="form-group">
+            <label for="dummy-host">Host</label>
+            <input id="dummy-host" type="text" placeholder="z.B. localhost oder 192.168.x.x" required>
+          </div>
+          <div class="form-group">
+            <label for="dummy-port">Port</label>
+            <input id="dummy-port" type="number" placeholder="5432" min="1" max="65535" required>
+          </div>
+          <div class="form-group">
+            <label for="dummy-database">Datenbankname</label>
+            <input id="dummy-database" type="text" placeholder="z.B. sas3db_dummy" required>
+          </div>
+          <div class="form-group">
+            <label for="dummy-user">Benutzer</label>
+            <input id="dummy-user" type="text" placeholder="z.B. postgres" required>
+          </div>
+          <div class="form-group">
+            <label for="dummy-password">Passwort</label>
+            <input id="dummy-password" type="password" placeholder="Datenbankpasswort" required>
+          </div>
+        </form>
+
+        <div class="button-group">
+          <button class="btn btn-primary" onclick="saveDummyDbConfig()">Speichern</button>
+          <button class="btn btn-secondary" onclick="testDummyDbConnection()">Verbindung testen</button>
+        </div>
+        <div class="status-message" id="dummy-status"></div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    async function loadDbConfig() {
+      try {
+        const res = await fetch('/api/db-config');
+        if (!res.ok) {
+          console.error('Fehler beim Laden der Konfiguration');
+          return;
+        }
+
+        const data = await res.json();
+
+        // Load main DB config
+        if (data.mainDb) {
+          document.getElementById('main-host').value = data.mainDb.host || '';
+          document.getElementById('main-port').value = data.mainDb.port || '5432';
+          document.getElementById('main-database').value = data.mainDb.database || '';
+          document.getElementById('main-user').value = data.mainDb.user || '';
+          document.getElementById('main-password').value = '';
+        }
+
+        // Load dummy DB config
+        if (data.dummyDb) {
+          document.getElementById('dummy-host').value = data.dummyDb.host || '';
+          document.getElementById('dummy-port').value = data.dummyDb.port || '5432';
+          document.getElementById('dummy-database').value = data.dummyDb.database || '';
+          document.getElementById('dummy-user').value = data.dummyDb.user || '';
+          document.getElementById('dummy-password').value = '';
+        }
+      } catch (error) {
+        console.error('Fehler beim Laden der Konfiguration:', error);
+      }
+    }
+
+    function setStatus(elementId, message, isSuccess = false) {
+      const el = document.getElementById(elementId);
+      el.textContent = message;
+      el.classList.add('show');
+      el.classList.toggle('success', isSuccess);
+      el.classList.toggle('error', !isSuccess);
+
+      setTimeout(() => {
+        el.classList.remove('show');
+      }, 5000);
+    }
+
+    async function saveMainDbConfig() {
+      const config = {
+        host: document.getElementById('main-host').value.trim(),
+        port: parseInt(document.getElementById('main-port').value, 10),
+        database: document.getElementById('main-database').value.trim(),
+        user: document.getElementById('main-user').value.trim(),
+        password: document.getElementById('main-password').value,
+      };
+
+      if (!config.host || !config.database || !config.user || !config.password) {
+        setStatus('main-status', 'Alle Felder sind erforderlich.', false);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/db-config', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scope: 'main', config }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          setStatus('main-status', data.error || 'Fehler beim Speichern.', false);
+          return;
+        }
+
+        setStatus('main-status', 'Konfiguration erfolgreich gespeichert.', true);
+      } catch (error) {
+        setStatus('main-status', `Fehler: ${error.message}`, false);
+      }
+    }
+
+    async function saveDummyDbConfig() {
+      const config = {
+        host: document.getElementById('dummy-host').value.trim(),
+        port: parseInt(document.getElementById('dummy-port').value, 10),
+        database: document.getElementById('dummy-database').value.trim(),
+        user: document.getElementById('dummy-user').value.trim(),
+        password: document.getElementById('dummy-password').value,
+      };
+
+      if (!config.host || !config.database || !config.user || !config.password) {
+        setStatus('dummy-status', 'Alle Felder sind erforderlich.', false);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/db-config', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scope: 'dummy', config }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          setStatus('dummy-status', data.error || 'Fehler beim Speichern.', false);
+          return;
+        }
+
+        setStatus('dummy-status', 'Konfiguration erfolgreich gespeichert.', true);
+      } catch (error) {
+        setStatus('dummy-status', `Fehler: ${error.message}`, false);
+      }
+    }
+
+    async function testMainDbConnection() {
+      const config = {
+        host: document.getElementById('main-host').value.trim(),
+        port: parseInt(document.getElementById('main-port').value, 10),
+        database: document.getElementById('main-database').value.trim(),
+        user: document.getElementById('main-user').value.trim(),
+        password: document.getElementById('main-password').value,
+      };
+
+      try {
+        const res = await fetch('/api/db-config/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scope: 'main', config }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          setStatus('main-status', data.error || 'Verbindung fehlgeschlagen.', false);
+          return;
+        }
+
+        setStatus('main-status', 'Verbindung erfolgreich getestet.', true);
+      } catch (error) {
+        setStatus('main-status', `Fehler: ${error.message}`, false);
+      }
+    }
+
+    async function testDummyDbConnection() {
+      const config = {
+        host: document.getElementById('dummy-host').value.trim(),
+        port: parseInt(document.getElementById('dummy-port').value, 10),
+        database: document.getElementById('dummy-database').value.trim(),
+        user: document.getElementById('dummy-user').value.trim(),
+        password: document.getElementById('dummy-password').value,
+      };
+
+      try {
+        const res = await fetch('/api/db-config/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scope: 'dummy', config }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          setStatus('dummy-status', data.error || 'Verbindung fehlgeschlagen.', false);
+          return;
+        }
+
+        setStatus('dummy-status', 'Verbindung erfolgreich getestet.', true);
+      } catch (error) {
+        setStatus('dummy-status', `Fehler: ${error.message}`, false);
+      }
+    }
+
+    // Load config on page load
+    loadDbConfig();
+  </script>
+</body>
+
+</html>

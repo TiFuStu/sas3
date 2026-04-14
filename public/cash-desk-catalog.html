@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kassen-Katalog - SaS3</title>
+  <link rel="stylesheet" href="/src/lbm.css">
+  <style>
+    body {
+      background-color: var(--lbm-gray-light);
+    }
+
+    .page-shell {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 2rem;
+    }
+
+    .hero, .card {
+      background: var(--lbm-white);
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      border-top: 4px solid var(--lbm-blue);
+      margin-bottom: 1.5rem;
+    }
+
+    .hero {
+      padding: 1.5rem 2rem;
+    }
+
+    .hero h1 {
+      margin: 0 0 0.5rem;
+      color: var(--lbm-text);
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--lbm-gray-dark);
+    }
+
+    .card {
+      padding: 1.5rem;
+      border-top: none;
+    }
+
+    .status-message {
+      display: none;
+      margin: 0 0 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: var(--border-radius);
+      font-weight: 600;
+    }
+
+    .status-message.ok {
+      display: block;
+      background: #e8f5e9;
+      color: #1c7d3c;
+      border: 1px solid #c3e6cb;
+    }
+
+    .status-message.error {
+      display: block;
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.75rem;
+      align-items: end;
+      margin-bottom: 1rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-weight: 700;
+      color: var(--lbm-text);
+    }
+
+    input[type="text"] {
+      width: 100%;
+      box-sizing: border-box;
+      border-radius: var(--border-radius);
+      border: 1px solid #ccc;
+      background: var(--lbm-white);
+      padding: 0.7rem;
+      font: inherit;
+      color: var(--lbm-text);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      text-align: left;
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--lbm-gray-light);
+      background-color: var(--lbm-gray-light);
+    }
+
+    tbody td {
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--lbm-gray-light);
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .status-pill.active {
+      background-color: #e8f5e9;
+      color: #1c7d3c;
+    }
+
+    .status-pill.inactive {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: var(--lbm-gray-dark);
+      padding: 1rem;
+    }
+
+    @media (max-width: 760px) {
+      .page-shell {
+        padding: 0 1rem;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo-container">
+      <img src="src/lbm.png" alt="LBM Logo">
+      <span class="header-title">SaS3 - Kassen-Katalog</span>
+    </div>
+    <div class="user-menu">
+      <a href="/overview" class="btn btn-secondary">Zurück zur Übersicht</a>
+    </div>
+  </header>
+
+  <div class="page-shell">
+    <section class="hero">
+      <h1>Kassen-Katalog</h1>
+      <p>Schadensteam und Leitung pflegen hier die verfügbaren Kassen. Beim Erfassen eines Falls kann nur aus diesen Werten ausgewählt werden.</p>
+    </section>
+
+    <section class="card">
+      <div id="statusMessage" class="status-message"></div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="cashDeskName">Neue Kasse</label>
+          <input id="cashDeskName" type="text" placeholder="z. B. Kasse Mainz" maxlength="255">
+        </div>
+        <button id="addButton" class="btn btn-primary" type="button">Hinzufügen</button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Kasse</th>
+            <th>Status</th>
+            <th>Aktionen</th>
+          </tr>
+        </thead>
+        <tbody id="cashDeskTableBody">
+          <tr><td colspan="3" class="empty-state">Lädt...</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <script>
+    const state = {
+      items: [],
+    };
+
+    const elements = {
+      statusMessage: document.getElementById("statusMessage"),
+      cashDeskName: document.getElementById("cashDeskName"),
+      addButton: document.getElementById("addButton"),
+      cashDeskTableBody: document.getElementById("cashDeskTableBody"),
+    };
+
+    async function apiFetch(url, options = {}) {
+      const response = await fetch(url, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(options.headers || {}),
+        },
+        ...options,
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({ error: "Unbekannter Fehler" }));
+        throw new Error(body.error || `HTTP ${response.status}`);
+      }
+
+      return response.json();
+    }
+
+    function setMessage(message, type = "ok") {
+      if (!message) {
+        elements.statusMessage.className = "status-message";
+        elements.statusMessage.textContent = "";
+        return;
+      }
+
+      elements.statusMessage.className = `status-message ${type}`;
+      elements.statusMessage.textContent = message;
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function render() {
+      if (!state.items.length) {
+        elements.cashDeskTableBody.innerHTML = '<tr><td colspan="3" class="empty-state">Keine Kassen vorhanden</td></tr>';
+        return;
+      }
+
+      elements.cashDeskTableBody.innerHTML = state.items
+        .map((item) => `
+          <tr>
+            <td>${escapeHtml(item.name)}</td>
+            <td>
+              <span class="status-pill ${item.active ? "active" : "inactive"}">
+                ${item.active ? "Aktiv" : "Inaktiv"}
+              </span>
+            </td>
+            <td class="actions">
+              <button class="btn btn-secondary" type="button" onclick="editCashDesk('${item.id}')">Bearbeiten</button>
+              <button class="btn btn-secondary" type="button" onclick="toggleCashDesk('${item.id}', ${item.active ? "false" : "true"})">
+                ${item.active ? "Deaktivieren" : "Aktivieren"}
+              </button>
+            </td>
+          </tr>
+        `)
+        .join("");
+    }
+
+    async function loadCashDesks() {
+      state.items = await apiFetch("/api/admin/cash-desks");
+      render();
+    }
+
+    async function addCashDesk() {
+      const name = elements.cashDeskName.value.trim();
+      if (!name) {
+        setMessage("Bitte eine Kassenbezeichnung eingeben", "error");
+        return;
+      }
+
+      await apiFetch("/api/admin/cash-desks", {
+        method: "POST",
+        body: JSON.stringify({ name }),
+      });
+
+      elements.cashDeskName.value = "";
+      setMessage("Kassen-Eintrag wurde erstellt", "ok");
+      await loadCashDesks();
+    }
+
+    window.editCashDesk = async function editCashDesk(id) {
+      const item = state.items.find((entry) => entry.id === id);
+      if (!item) {
+        return;
+      }
+
+      const name = window.prompt("Neue Kassenbezeichnung:", item.name || "");
+      if (name === null) {
+        return;
+      }
+
+      const trimmed = name.trim();
+      if (!trimmed) {
+        setMessage("Kassenbezeichnung darf nicht leer sein", "error");
+        return;
+      }
+
+      await apiFetch(`/api/admin/cash-desks/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        body: JSON.stringify({ name: trimmed, active: item.active !== false }),
+      });
+
+      setMessage("Kassen-Eintrag wurde aktualisiert", "ok");
+      await loadCashDesks();
+    };
+
+    window.toggleCashDesk = async function toggleCashDesk(id, active) {
+      const item = state.items.find((entry) => entry.id === id);
+      if (!item) {
+        return;
+      }
+
+      await apiFetch(`/api/admin/cash-desks/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        body: JSON.stringify({ name: item.name, active }),
+      });
+
+      setMessage("Status wurde aktualisiert", "ok");
+      await loadCashDesks();
+    };
+
+    elements.addButton.addEventListener("click", () => {
+      addCashDesk().catch((error) => setMessage(error.message, "error"));
+    });
+
+    elements.cashDeskName.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        addCashDesk().catch((error) => setMessage(error.message, "error"));
+      }
+    });
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      try {
+        await loadCashDesks();
+      } catch (error) {
+        setMessage(error.message, "error");
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 {
   "name": "sas3-login",
   "version": "1.0.0",
-  "description": "SaS3 Login with Active Directory",
+  "description": "SaS3 Login mit Dummy- und Active-Directory-Benutzern",
   "main": "server.mjs",
   "scripts": {
     "start": "node server.mjs"

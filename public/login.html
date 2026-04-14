@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SaS3 - Anmeldung | LBM Rheinland-Pfalz</title>
+  <link rel="stylesheet" href="src/lbm.css">
+  <style>
+    body {
+      background-color: var(--lbm-gray-light);
+    }
+
+    .login-intro {
+      background: var(--lbm-white);
+      border-left: 4px solid #E30613;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--box-shadow);
+    }
+
+    .login-intro h1 {
+      margin: 0 0 0.4rem;
+      color: var(--lbm-blue);
+      font-size: 1.6rem;
+    }
+
+    .login-intro p {
+      margin: 0;
+      color: var(--lbm-text);
+    }
+
+    .login-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .login-card {
+      background: var(--lbm-white);
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      padding: 1.5rem;
+      border-top: 3px solid var(--lbm-blue);
+    }
+
+    .login-card h2 {
+      margin: 0 0 0.5rem;
+      color: var(--lbm-blue);
+      font-size: 1.25rem;
+    }
+
+    .hint {
+      margin: 0 0 1rem;
+      color: var(--lbm-gray-dark);
+    }
+
+    .login-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: bold;
+    }
+
+    .btn {
+      width: 100%;
+    }
+
+    .section-gap {
+      margin-top: 1rem;
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 1.2rem 0;
+      color: var(--lbm-gray-dark);
+      font-size: 0.9rem;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--lbm-gray-light);
+    }
+
+    .status {
+      min-height: 1.3rem;
+      margin-top: 0.9rem;
+      color: #b00020;
+      font-weight: 600;
+    }
+
+    .status.ok {
+      color: #1c7d3c;
+    }
+
+    .support-box {
+      margin-top: 1.5rem;
+      background: #eef4fb;
+      border: 1px solid #c9dbee;
+      border-radius: var(--border-radius);
+      padding: 0.9rem 1rem;
+      font-size: 0.95rem;
+    }
+
+    .support-box strong {
+      color: var(--lbm-blue);
+    }
+
+    @media (max-width: 900px) {
+      .login-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="logo-container">
+      <img src="src/lbm.png" alt="LBM Logo">
+      <span class="header-title">SaS3 - Schadensabwicklungssystem</span>
+    </div>
+  </header>
+
+  <div class="container">
+    <section class="login-intro">
+      <h1>Anmeldung</h1>
+      <p>Bitte melden Sie sich mit einem Active-Directory-Benutzer oder mit einem Dummy-Benutzer an.</p>
+    </section>
+
+    <div class="login-grid">
+      <section class="login-card">
+        <h2>Active Directory</h2>
+        <p class="hint">Benutzername z. B. als <strong>vorname.nachname</strong>, <strong>DOMAIN\benutzer</strong> oder <strong>benutzer@domain</strong>.</p>
+
+        <form id="ad-login-form">
+          <div class="login-group">
+            <label for="ad-username">Benutzername</label>
+            <input id="ad-username" class="form-control" type="text" placeholder="AD-Benutzername" autocomplete="username">
+          </div>
+          <div class="login-group section-gap">
+            <label for="ad-password">Passwort</label>
+            <input id="ad-password" class="form-control" type="password" placeholder="AD-Passwort" autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn btn-primary">Mit Active Directory anmelden</button>
+        </form>
+
+        <div class="status" id="status"></div>
+      </section>
+
+      <section class="login-card">
+        <h2>Dummy-Benutzer</h2>
+        <p class="hint">Für Test, Schulung und Entwicklung.</p>
+
+        <div class="login-group">
+          <label for="dummy-user">Dummy-Konto</label>
+          <select id="dummy-user" class="form-control">
+            <option value="">Dummy-Konto wählen</option>
+          </select>
+        </div>
+        <button id="dummy-login-btn" type="button" class="btn btn-secondary section-gap">Mit Dummy anmelden</button>
+
+        <div class="divider">Hinweis</div>
+        <div class="support-box">
+          <strong>LBM Rheinland-Pfalz:</strong> Bei Problemen mit dem AD-Login bitte Infrastruktur/AD-Erreichbarkeit prüfen.
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const adUsernameEl = document.getElementById('ad-username');
+    const adPasswordEl = document.getElementById('ad-password');
+    const dummyUserEl = document.getElementById('dummy-user');
+
+    function setStatus(message, isOk = false) {
+      statusEl.textContent = message || '';
+      statusEl.classList.toggle('ok', Boolean(isOk));
+    }
+
+    async function login(username, password = '') {
+      setStatus('');
+
+      const res = await fetch('/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username, password })
+      });
+
+      const payload = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(payload.error || 'Anmeldung fehlgeschlagen');
+      }
+
+      setStatus('Anmeldung erfolgreich. Weiterleitung...', true);
+      window.location.href = '/overview';
+    }
+
+    async function loadDummyUsers() {
+      const res = await fetch('/api/auth-options');
+      const data = await res.json();
+      const users = Array.isArray(data.testUsers) ? data.testUsers : [];
+
+      users.forEach((user) => {
+        const option = document.createElement('option');
+        option.value = user.username;
+        option.textContent = user.displayName ? `${user.displayName} (${user.username})` : user.username;
+        dummyUserEl.appendChild(option);
+      });
+    }
+
+    document.getElementById('ad-login-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      try {
+        if (!adPasswordEl.value) {
+          setStatus('Bitte ein Passwort angeben.');
+          return;
+        }
+
+        await login(adUsernameEl.value.trim(), adPasswordEl.value);
+      } catch (error) {
+        setStatus(error.message);
+      }
+    });
+
+    document.getElementById('dummy-login-btn').addEventListener('click', async () => {
+      try {
+        if (!dummyUserEl.value) {
+          setStatus('Bitte einen Dummy-Benutzer auswählen.');
+          return;
+        }
+        await login(dummyUserEl.value);
+      } catch (error) {
+        setStatus(error.message);
+      }
+    });
+
+    dummyUserEl.addEventListener('change', () => {
+      if (dummyUserEl.value) {
+        adUsernameEl.value = dummyUserEl.value;
+      }
+    });
+
+    loadDummyUsers().catch((error) => {
+      setStatus('Dummy-Benutzer konnten nicht geladen werden: ' + error.message);
+    });
+  </script>
+</body>
+
+</html>

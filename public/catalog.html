@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Katalog-Verwaltung - SaS3</title>
+    <link rel="stylesheet" href="/src/lbm.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+
+        h1 {
+            color: #003366;
+            border-bottom: 3px solid #003366;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-grid.full {
+            grid-template-columns: 1fr;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        input, select, textarea {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        button {
+            background-color: #0066cc;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0052a3;
+        }
+
+        button.secondary {
+            background-color: #666;
+        }
+
+        button.secondary:hover {
+            background-color: #555;
+        }
+
+        button.danger {
+            background-color: #cc0000;
+        }
+
+        button.danger:hover {
+            background-color: #990000;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        thead {
+            background-color: #f0f0f0;
+        }
+
+        th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #ddd;
+            color: #333;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        .status-active {
+            color: green;
+            font-weight: 600;
+        }
+
+        .status-inactive {
+            color: red;
+            font-weight: 600;
+        }
+
+        .actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .actions button {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .status-message {
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .status-message.ok {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .status-message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+        .info {
+            background-color: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            color: #004085;
+        }
+
+        .edit-row {
+            background-color: #fff3cd;
+        }
+
+        .editable-cell input, .editable-cell select {
+            width: 100%;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 Katalog-Verwaltung</h1>
+
+        <div class="info">
+            <strong>Katalog:</strong> Verwalten Sie hier die verfügbaren Materialien und Leistungen mit ihren Kosten. 
+            Diese können beim Erfassen eines Schadensfalls zur Kostenberechnung ausgewählt werden.
+        </div>
+
+        <div id="statusMessage" class="status-message"></div>
+
+        <!-- Neuer Katalog-Eintrag -->
+        <div class="section">
+            <h2>Neuer Katalog-Eintrag</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="katBezeichnung">Bezeichnung *</label>
+                    <input type="text" id="katBezeichnung" placeholder="z.B. Asphalt-Flickwerk">
+                </div>
+                <div class="form-group">
+                    <label for="katKategorie">Kategorie</label>
+                    <input type="text" id="katKategorie" placeholder="z.B. Asphalt, Beton, Transport">
+                </div>
+                <div class="form-group full">
+                    <label for="katBeschreibung">Beschreibung</label>
+                    <textarea id="katBeschreibung" placeholder="Detaillierte Beschreibung der Leistung/des Materials"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="katEinheit">Einheit</label>
+                    <select id="katEinheit">
+                        <option value="Stück">Stück</option>
+                        <option value="Stunde">Stunde</option>
+                        <option value="Quadratmeter">Quadratmeter</option>
+                        <option value="Meter">Meter</option>
+                        <option value="Tonne">Tonne</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="katSatz">Satz (€) *</label>
+                    <input type="number" id="katSatz" placeholder="0.00" step="0.01" min="0">
+                </div>
+            </div>
+            <div class="button-group">
+                <button onclick="addCatalogItem()">Eintrag hinzufügen</button>
+            </div>
+        </div>
+
+        <!-- Katalog-Tabelle -->
+        <div class="section">
+            <h2>Katalog-Einträge</h2>
+            <table id="catalogTable">
+                <thead>
+                    <tr>
+                        <th>Bezeichnung</th>
+                        <th>Kategorie</th>
+                        <th>Einheit</th>
+                        <th>Satz (€)</th>
+                        <th>Status</th>
+                        <th>Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody id="catalogBody">
+                    <tr><td colspan="6" style="text-align: center; color: #999;">Lädt...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let catalogData = [];
+
+        async function loadCatalog() {
+            try {
+                const response = await fetch('/api/admin/catalog');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                catalogData = await response.json();
+                renderCatalog();
+            } catch (error) {
+                showStatus(`Katalog konnte nicht geladen werden: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        function renderCatalog() {
+            const tbody = document.getElementById('catalogBody');
+            
+            if (!catalogData || catalogData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">Keine Einträge vorhanden</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = catalogData.map(item => `
+                <tr>
+                    <td><strong>${escapeHtml(item.bezeichnung)}</strong></td>
+                    <td>${escapeHtml(item.kategorie)}</td>
+                    <td>${escapeHtml(item.einheit)}</td>
+                    <td>${item.satz.toFixed(2)} €</td>
+                    <td>
+                        <span class="${item.aktiv ? 'status-active' : 'status-inactive'}">
+                            ${item.aktiv ? '✓ Aktiv' : '✗ Inaktiv'}
+                        </span>
+                    </td>
+                    <td class="actions">
+                        <button onclick="editCatalogItem('${item.id}')" class="secondary">Bearbeiten</button>
+                        <button onclick="deleteCatalogItem('${item.id}')" class="danger">Löschen</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function addCatalogItem() {
+            const bezeichnung = document.getElementById('katBezeichnung').value.trim();
+            const beschreibung = document.getElementById('katBeschreibung').value.trim();
+            const kategorie = document.getElementById('katKategorie').value.trim();
+            const einheit = document.getElementById('katEinheit').value;
+            const satz = parseFloat(document.getElementById('katSatz').value);
+
+            if (!bezeichnung) {
+                showStatus('Bezeichnung ist erforderlich', 'error');
+                return;
+            }
+
+            if (!satz || satz <= 0) {
+                showStatus('Satz muss größer als 0 sein', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/catalog', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        bezeichnung,
+                        beschreibung,
+                        kategorie,
+                        einheit,
+                        satz
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || `HTTP ${response.status}`);
+                }
+
+                showStatus('Katalog-Eintrag erfolgreich hinzugefügt', 'ok');
+                document.getElementById('katBezeichnung').value = '';
+                document.getElementById('katBeschreibung').value = '';
+                document.getElementById('katKategorie').value = '';
+                document.getElementById('katEinheit').value = 'Stück';
+                document.getElementById('katSatz').value = '';
+                
+                await loadCatalog();
+            } catch (error) {
+                showStatus(`Fehler beim Hinzufügen: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        async function editCatalogItem(id) {
+            const item = catalogData.find(i => i.id === id);
+            if (!item) return;
+
+            const newBezeichnung = prompt('Bezeichnung:', item.bezeichnung);
+            if (newBezeichnung === null) return;
+
+            if (!newBezeichnung.trim()) {
+                showStatus('Bezeichnung ist erforderlich', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/catalog/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        bezeichnung: newBezeichnung,
+                        beschreibung: item.beschreibung,
+                        kategorie: item.kategorie,
+                        einheit: item.einheit,
+                        satz: item.satz,
+                        aktiv: item.aktiv
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || `HTTP ${response.status}`);
+                }
+
+                showStatus('Katalog-Eintrag erfolgreich aktualisiert', 'ok');
+                await loadCatalog();
+            } catch (error) {
+                showStatus(`Fehler beim Aktualisieren: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        async function deleteCatalogItem(id) {
+            if (!confirm('Sind Sie sicher, dass Sie diesen Katalog-Eintrag deaktivieren möchten?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/catalog/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || `HTTP ${response.status}`);
+                }
+
+                showStatus('Katalog-Eintrag erfolgreich deaktiviert', 'ok');
+                await loadCatalog();
+            } catch (error) {
+                showStatus(`Fehler beim Löschen: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        function showStatus(message, type) {
+            const el = document.getElementById('statusMessage');
+            el.textContent = message;
+            el.className = `status-message ${type}`;
+            setTimeout(() => {
+                el.className = 'status-message';
+            }, 5000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Load catalog on page load
+        loadCatalog();
+    </script>
+</body>
+</html>

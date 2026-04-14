@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SaS3 - Rechteverwaltung | LBM Rheinland-Pfalz</title>
+  <link rel="stylesheet" href="src/lbm.css">
+  <style>
+    .users-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .users-table th,
+    .users-table td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--lbm-gray-light);
+    }
+
+    .users-table th {
+      font-weight: bold;
+      color: var(--lbm-text);
+    }
+
+    .role-badge {
+      background: var(--lbm-gray-light);
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      display: inline-block;
+      margin: 0.1rem;
+      border: 1px solid var(--lbm-gray);
+    }
+
+    .mapping-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+
+    .mapping-table th,
+    .mapping-table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--lbm-gray-light);
+      vertical-align: middle;
+    }
+
+    .mapping-actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .mapping-inline-input {
+      width: 100%;
+      min-width: 240px;
+    }
+
+    .hint-box {
+      margin-top: 0.75rem;
+      padding: 0.75rem;
+      background: #f4f8fc;
+      border: 1px solid #d4e2f1;
+      border-radius: var(--border-radius);
+      font-size: 0.92rem;
+      color: var(--lbm-text);
+    }
+
+    .save-status {
+      margin-top: 0.75rem;
+      font-weight: bold;
+      min-height: 1.2rem;
+    }
+
+    .save-status.ok {
+      color: #1c7d3c;
+    }
+
+    .save-status.error {
+      color: #b00020;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="logo-container">
+      <img src="src/lbm.png" alt="LBM Logo">
+      <span class="header-title">SaS3 - Rechteverwaltung</span>
+    </div>
+    <div class="user-menu">
+      <a href="/overview" class="btn btn-secondary">Zurück zur Übersicht</a>
+      <a href="/db-config" class="btn btn-secondary">Datenbank-Konfiguration</a>
+      <a href="/logout" class="logout-btn">Abmelden</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="flex justify-between align-center mb-2">
+      <h1>Rechteverwaltung</h1>
+    </div>
+
+    <div class="card">
+      <div id="loading" class="text-center">Lade Benutzerdaten...</div>
+      <div id="error-message" class="text-center" style="color: #E30613; display: none;"></div>
+
+      <div style="overflow-x: auto;">
+        <table class="users-table" id="users-table" style="display: none;">
+          <thead>
+            <tr>
+              <th>ID (AD)</th>
+              <th>Name</th>
+              <th>Dienststelle</th>
+              <th>E-Mail</th>
+              <th>Rollen</th>
+            </tr>
+          </thead>
+          <tbody id="users-body">
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Gruppen- und Rollen-Einstellungen</h2>
+      <p>Hier können Sie AD-Gruppen den internen Rollen zuordnen.</p>
+
+      <div class="hint-box">
+        Beispiel: <strong>Azubi IT</strong> -> <strong>erfasser</strong>,
+        <strong>DL5 Azubi HG</strong> -> <strong>bearbeiter</strong>,
+        <strong>ft3geoinformationssysteme</strong> -> <strong>leitung</strong>,
+        <strong>ft3verwltungsverfahren</strong> -> <strong>admin</strong>.
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table class="mapping-table" id="mapping-table">
+          <thead>
+            <tr>
+              <th>AD-Gruppe</th>
+              <th>Rolle</th>
+              <th>Aktion</th>
+            </tr>
+          </thead>
+          <tbody id="mapping-body"></tbody>
+        </table>
+      </div>
+
+      <div class="mapping-actions">
+        <button type="button" id="add-mapping" class="btn btn-secondary">Zuordnung hinzufügen</button>
+        <button type="button" id="save-mappings" class="btn btn-primary">Zuordnungen speichern</button>
+      </div>
+      <div id="save-status" class="save-status"></div>
+      <datalist id="ad-group-options"></datalist>
+    </div>
+  </div>
+
+  <script>
+    let roleOptions = [];
+
+    function setSaveStatus(message, type) {
+      const el = document.getElementById('save-status');
+      el.textContent = message || '';
+      el.classList.remove('ok', 'error');
+      if (type) {
+        el.classList.add(type);
+      }
+    }
+
+    function renderMappings(mappings) {
+      const tbody = document.getElementById('mapping-body');
+      tbody.innerHTML = '';
+
+      mappings.forEach((mapping) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>
+            <input type="text" class="form-control mapping-inline-input group-input" list="ad-group-options" value="${mapping.groupName || mapping.groupDN || ''}">
+          </td>
+          <td>
+            <select class="form-control role-input">
+              ${roleOptions.map((r) => `<option value="${r.name}" ${mapping.roles?.[0] === r.name ? 'selected' : ''}>${r.label}</option>`).join('')}
+            </select>
+          </td>
+          <td>
+            <button type="button" class="btn btn-secondary remove-mapping">Entfernen</button>
+          </td>
+        `;
+
+        tr.querySelector('.remove-mapping').addEventListener('click', () => {
+          tr.remove();
+        });
+
+        tbody.appendChild(tr);
+      });
+
+      if (tbody.children.length === 0) {
+        addMappingRow();
+      }
+    }
+
+    function addMappingRow() {
+      const tbody = document.getElementById('mapping-body');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>
+          <input type="text" class="form-control mapping-inline-input group-input" list="ad-group-options" placeholder="z. B. Azubi IT">
+        </td>
+        <td>
+          <select class="form-control role-input">
+            ${roleOptions.map((r) => `<option value="${r.name}">${r.label}</option>`).join('')}
+          </select>
+        </td>
+        <td>
+          <button type="button" class="btn btn-secondary remove-mapping">Entfernen</button>
+        </td>
+      `;
+
+      tr.querySelector('.remove-mapping').addEventListener('click', () => {
+        tr.remove();
+      });
+
+      tbody.appendChild(tr);
+    }
+
+    async function loadUsers() {
+      try {
+        const res = await fetch('/api/users');
+        if (!res.ok) throw new Error('Netzwerkfehler');
+        const users = await res.json();
+
+        const table = document.getElementById('users-table');
+        const tbody = document.getElementById('users-body');
+
+        users.forEach(u => {
+          const rolesHtml = (u.roles || []).map(r => `<span class="role-badge">${r}</span>`).join('') || '-';
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+                        <td>${u.BENID || ''}</td>
+                        <td>${u.BENVORNAME || ''} ${u.BENNACHNAME || ''}</td>
+                        <td>${u.BENDIENSTSTELLE || '-'}</td>
+                        <td>${u.BENMAIL || '-'}</td>
+                        <td>${rolesHtml}</td>
+                    `;
+          tbody.appendChild(tr);
+        });
+
+        document.getElementById('loading').style.display = 'none';
+        table.style.display = 'table';
+      } catch (err) {
+        document.getElementById('loading').style.display = 'none';
+        const el = document.getElementById('error-message');
+        el.textContent = 'Fehler beim Laden: ' + err.message;
+        el.style.display = 'block';
+      }
+    }
+
+    async function loadRoleMappings() {
+      const res = await fetch('/api/rights/group-mappings');
+      if (!res.ok) {
+        throw new Error('Gruppenmappings konnten nicht geladen werden');
+      }
+
+      const data = await res.json();
+      roleOptions = data.roleOptions || [];
+
+      const datalist = document.getElementById('ad-group-options');
+      datalist.innerHTML = '';
+      (data.availableGroups || []).forEach((group) => {
+        const option = document.createElement('option');
+        option.value = group.name || group.dn;
+        datalist.appendChild(option);
+      });
+
+      renderMappings(data.mappings || []);
+    }
+
+    async function saveRoleMappings() {
+      setSaveStatus('Speichere...', '');
+
+      const rows = Array.from(document.querySelectorAll('#mapping-body tr'));
+      const mappings = rows
+        .map((row) => {
+          const groupName = row.querySelector('.group-input').value.trim();
+          const role = row.querySelector('.role-input').value;
+
+          if (!groupName) {
+            return null;
+          }
+
+          return {
+            groupName,
+            roles: [role],
+          };
+        })
+        .filter(Boolean);
+
+      const res = await fetch('/api/rights/group-mappings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mappings }),
+      });
+
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(payload.error || 'Speichern fehlgeschlagen');
+      }
+
+      setSaveStatus('Zuordnungen erfolgreich gespeichert.', 'ok');
+      renderMappings(payload.mappings || mappings);
+    }
+
+    document.getElementById('add-mapping').addEventListener('click', () => {
+      addMappingRow();
+    });
+
+    document.getElementById('save-mappings').addEventListener('click', async () => {
+      try {
+        await saveRoleMappings();
+      } catch (error) {
+        setSaveStatus(error.message, 'error');
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        await Promise.all([loadUsers(), loadRoleMappings()]);
+      } catch (error) {
+        setSaveStatus(error.message, 'error');
+      }
+    });
+  </script>
+</body>
+
+</html>

@@ -1,11 +1,22 @@
 const fs = require("fs");
 const path = require("path");
 const { Pool } = require("pg");
+const { AsyncLocalStorage } = require("node:async_hooks");
 const dbHelper = require("./utils/dbHelper");
 
 const configPath = path.join(__dirname, "..", "config/config.json");
-let poolPromise;
-let schemaPromise;
+const poolPromises = new Map();
+const schemaPromises = new Map();
+const dbScopeStorage = new AsyncLocalStorage();
+
+function getActiveScope() {
+  return dbScopeStorage.getStore()?.scope || "main";
+}
+
+function runWithScope(scope, fn) {
+  const normalizedScope = scope === "dummy" ? "dummy" : "main";
+  return dbScopeStorage.run({ scope: normalizedScope }, fn);
+}
 
 function loadConfig() {
   try {
@@ -15,9 +26,20 @@ function loadConfig() {
   }
 }
 
-function getPoolConfig() {
+function getPoolConfig(scope = getActiveScope()) {
   const config = loadConfig();
-  const dbConfig = config.db || {};
+  const dbConfig =
+    scope === "dummy"
+      ? config.dummyDb || null
+      : config.db || null;
+
+  if (!dbConfig || !dbConfig.database) {
+    throw new Error(
+      scope === "dummy"
+        ? "dummyDb ist nicht konfiguriert. Bitte config.json anpassen."
+        : "db ist nicht konfiguriert. Bitte config.json anpassen.",
+    );
+  }
 
   return {
     user: dbConfig.user,
@@ -31,10 +53,10 @@ function getPoolConfig() {
   };
 }
 
-async function ensureCoreSchema() {
-  if (!schemaPromise) {
-    schemaPromise = (async () => {
-      const pool = await getPoolPromise();
+async function ensureCoreSchema(scope = getActiveScope()) {
+  if (!schemaPromises.has(scope)) {
+    const schemaPromise = (async () => {
+      const pool = await getPoolPromise(scope);
       const schemaSql = `
                 CREATE TABLE IF NOT EXISTS "SYSBENUTZER" (
                     "BENID" VARCHAR(100) NOT NULL PRIMARY KEY,
@@ -90,6 +112,10 @@ async function ensureCoreSchema() {
                     "SFAVERSICHERUNGSSCHADENNR" VARCHAR(100) NULL,
                     "SFAEMAILVERSICHERUNG" VARCHAR(255) NULL,
                     "SFARECHNUNGAN" VARCHAR(100) NULL,
+                    "SFARECHNUNGTYP" VARCHAR(30) NULL,
+                    "SFARECHNUNGADRESSE" TEXT NULL,
+                    "SFARECHNUNGTEL" VARCHAR(50) NULL,
+                    "SFARECHNUNGMAIL" VARCHAR(255) NULL,
                     "SFAKASSE" VARCHAR(100) NULL,
                     "SFASONSTIGEKOSTEN" NUMERIC(12, 2) NOT NULL DEFAULT 0,
                     "SFAOFFENEFORDERUNG" NUMERIC(12, 2) NOT NULL DEFAULT 0,
@@ -109,6 +135,18 @@ async function ensureCoreSchema() {
                     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='DATSCHADENSFAELLE' AND column_name='SFAVERURSACHERADRESSE') THEN
                         ALTER TABLE "DATSCHADENSFAELLE" ADD COLUMN "SFAVERURSACHERADRESSE" TEXT NULL; 
                     END IF;
+                  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='DATSCHADENSFAELLE' AND column_name='SFARECHNUNGTYP') THEN
+                    ALTER TABLE "DATSCHADENSFAELLE" ADD COLUMN "SFARECHNUNGTYP" VARCHAR(30) NULL;
+                  END IF;
+                  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='DATSCHADENSFAELLE' AND column_name='SFARECHNUNGADRESSE') THEN
+                    ALTER TABLE "DATSCHADENSFAELLE" ADD COLUMN "SFARECHNUNGADRESSE" TEXT NULL;
+                  END IF;
+                  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='DATSCHADENSFAELLE' AND column_name='SFARECHNUNGTEL') THEN
+                    ALTER TABLE "DATSCHADENSFAELLE" ADD COLUMN "SFARECHNUNGTEL" VARCHAR(50) NULL;
+                  END IF;
+                  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='DATSCHADENSFAELLE' AND column_name='SFARECHNUNGMAIL') THEN
+                    ALTER TABLE "DATSCHADENSFAELLE" ADD COLUMN "SFARECHNUNGMAIL" VARCHAR(255) NULL;
+                  END IF;
                 END $$;
                 
                 -- Ensure unique constraint on case number
@@ -117,27 +155,144 @@ async function ensureCoreSchema() {
                         ALTER TABLE "DATSCHADENSFAELLE" ADD CONSTRAINT "UX_DATSCHADENSFAELLE_SFANUMMER" UNIQUE ("SFANUMMER");
                     END IF;
                 END $$;
+
+                CREATE TABLE IF NOT EXISTS "SYSKATALOG" (
+                    "KATID" VARCHAR(80) NOT NULL PRIMARY KEY,
+                    "KATBEZEICHNUNG" VARCHAR(255) NOT NULL,
+                    "KATBESCHREIBUNG" TEXT NULL,
+                    "KATKATEGORIE" VARCHAR(100) NOT NULL,
+                    "KATEINHEIT" VARCHAR(50) NOT NULL DEFAULT 'Stück',
+                    "KATSATZ" NUMERIC(12, 2) NOT NULL,
+                    "KATAKTIV" BOOLEAN NOT NULL DEFAULT TRUE,
+                    "KATERSTELLTVON" VARCHAR(100) NOT NULL,
+                    "KATERSTELLTAM" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    "KATAEENDERUNGAM" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+
+                CREATE TABLE IF NOT EXISTS "SFOKATALOGPOSITIONEN" (
+                    "KATPOSID" VARCHAR(80) NOT NULL PRIMARY KEY,
+                    "SFAID" VARCHAR(80) NOT NULL REFERENCES "DATSCHADENSFAELLE"("SFAID") ON DELETE CASCADE,
+                    "KATID" VARCHAR(80) NOT NULL REFERENCES "SYSKATALOG"("KATID") ON DELETE CASCADE,
+                    "KATPOSMENGE" NUMERIC(10, 2) NOT NULL,
+                    "KATPOSGESAMTPREIS" NUMERIC(12, 2) NOT NULL,
+                    "KATEINTRAG" INT NOT NULL DEFAULT 0,
+                    "KATPOSHINZUGEFUEGTAM" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    "KATPOSGELOESCHTAM" TIMESTAMP NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS "IDX_SFOKATALOGPOSITIONEN_SFAID" ON "SFOKATALOGPOSITIONEN"("SFAID");
+                CREATE INDEX IF NOT EXISTS "IDX_SFOKATALOGPOSITIONEN_KATID" ON "SFOKATALOGPOSITIONEN"("KATID");
+
+        CREATE TABLE IF NOT EXISTS "SYSVERSICHERUNGEN" (
+          "VERSID" VARCHAR(80) NOT NULL PRIMARY KEY,
+          "VERSNAME" VARCHAR(255) NOT NULL,
+          "VERSANSPRECHPARTNER" VARCHAR(255) NULL,
+          "VERSTELEFON" VARCHAR(50) NULL,
+          "VERSMAIL" VARCHAR(255) NULL,
+          "VERSSTRASSE" VARCHAR(255) NULL,
+          "VERSPLZ" VARCHAR(20) NULL,
+          "VERSORT" VARCHAR(120) NULL,
+          "VERSLAND" VARCHAR(120) NOT NULL DEFAULT 'Deutschland',
+          "VERSBESCHREIBUNG" TEXT NULL,
+          "VERSAKTIV" BOOLEAN NOT NULL DEFAULT TRUE,
+          "VERSERSTELLTVON" VARCHAR(100) NOT NULL,
+          "VERSERSTELLTAM" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "VERSAENDERUNGAM" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+
+        DO $$
+        BEGIN
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='SYSVERSICHERUNGEN' AND column_name='VERSANSPRECHPARTNER') THEN
+            ALTER TABLE "SYSVERSICHERUNGEN" ADD COLUMN "VERSANSPRECHPARTNER" VARCHAR(255) NULL;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='SYSVERSICHERUNGEN' AND column_name='VERSTELEFON') THEN
+            ALTER TABLE "SYSVERSICHERUNGEN" ADD COLUMN "VERSTELEFON" VARCHAR(50) NULL;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='SYSVERSICHERUNGEN' AND column_name='VERSMAIL') THEN
+            ALTER TABLE "SYSVERSICHERUNGEN" ADD COLUMN "VERSMAIL" VARCHAR(255) NULL;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='SYSVERSICHERUNGEN' AND column_name='VERSSTRASSE') THEN
+            ALTER TABLE "SYSVERSICHERUNGEN" ADD COLUMN "VERSSTRASSE" VARCHAR(255) NULL;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='SYSVERSICHERUNGEN' AND column_name='VERSPLZ') THEN
+            ALTER TABLE "SYSVERSICHERUNGEN" ADD COLUMN "VERSPLZ" VARCHAR(20) NULL;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='SYSVERSICHERUNGEN' AND column_name='VERSORT') THEN
+            ALTER TABLE "SYSVERSICHERUNGEN" ADD COLUMN "VERSORT" VARCHAR(120) NULL;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='SYSVERSICHERUNGEN' AND column_name='VERSLAND') THEN
+            ALTER TABLE "SYSVERSICHERUNGEN" ADD COLUMN "VERSLAND" VARCHAR(120) NOT NULL DEFAULT 'Deutschland';
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='SYSVERSICHERUNGEN' AND column_name='VERSBESCHREIBUNG') THEN
+            ALTER TABLE "SYSVERSICHERUNGEN" ADD COLUMN "VERSBESCHREIBUNG" TEXT NULL;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='SYSVERSICHERUNGEN' AND column_name='VERSAKTIV') THEN
+            ALTER TABLE "SYSVERSICHERUNGEN" ADD COLUMN "VERSAKTIV" BOOLEAN NOT NULL DEFAULT TRUE;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='SYSVERSICHERUNGEN' AND column_name='VERSERSTELLTVON') THEN
+            ALTER TABLE "SYSVERSICHERUNGEN" ADD COLUMN "VERSERSTELLTVON" VARCHAR(100) NOT NULL DEFAULT 'system';
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='SYSVERSICHERUNGEN' AND column_name='VERSERSTELLTAM') THEN
+            ALTER TABLE "SYSVERSICHERUNGEN" ADD COLUMN "VERSERSTELLTAM" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='SYSVERSICHERUNGEN' AND column_name='VERSAENDERUNGAM') THEN
+            ALTER TABLE "SYSVERSICHERUNGEN" ADD COLUMN "VERSAENDERUNGAM" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+          END IF;
+        END $$;
+
+        CREATE INDEX IF NOT EXISTS "IDX_SYSVERSICHERUNGEN_VERSAKTIV" ON "SYSVERSICHERUNGEN"("VERSAKTIV");
+        CREATE INDEX IF NOT EXISTS "IDX_SYSVERSICHERUNGEN_VERSNAME" ON "SYSVERSICHERUNGEN"("VERSNAME");
+
+        CREATE TABLE IF NOT EXISTS "SYSKASSEN" (
+          "KASSEID" VARCHAR(80) NOT NULL PRIMARY KEY,
+          "KASSEBEZEICHNUNG" VARCHAR(255) NOT NULL,
+          "KASSEAKTIV" BOOLEAN NOT NULL DEFAULT TRUE,
+          "KASSEERSTELLTVON" VARCHAR(100) NOT NULL,
+          "KASSEERSTELLTAM" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "KASSEAENDERUNGAM" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+
+        DO $$
+        BEGIN
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='SYSKASSEN' AND column_name='KASSEAKTIV') THEN
+            ALTER TABLE "SYSKASSEN" ADD COLUMN "KASSEAKTIV" BOOLEAN NOT NULL DEFAULT TRUE;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='SYSKASSEN' AND column_name='KASSEERSTELLTVON') THEN
+            ALTER TABLE "SYSKASSEN" ADD COLUMN "KASSEERSTELLTVON" VARCHAR(100) NOT NULL DEFAULT 'system';
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='SYSKASSEN' AND column_name='KASSEERSTELLTAM') THEN
+            ALTER TABLE "SYSKASSEN" ADD COLUMN "KASSEERSTELLTAM" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='SYSKASSEN' AND column_name='KASSEAENDERUNGAM') THEN
+            ALTER TABLE "SYSKASSEN" ADD COLUMN "KASSEAENDERUNGAM" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+          END IF;
+        END $$;
+
+        CREATE INDEX IF NOT EXISTS "IDX_SYSKASSEN_AKTIV" ON "SYSKASSEN"("KASSEAKTIV");
+        CREATE INDEX IF NOT EXISTS "IDX_SYSKASSEN_BEZEICHNUNG" ON "SYSKASSEN"("KASSEBEZEICHNUNG");
             `;
       await pool.query(schemaSql);
     })().catch((error) => {
-      schemaPromise = undefined;
+      schemaPromises.delete(scope);
       throw error;
     });
+
+    schemaPromises.set(scope, schemaPromise);
   }
 
-  return schemaPromise;
+  return schemaPromises.get(scope);
 }
 
-function getPoolPromise() {
-  if (!poolPromise) {
-    poolPromise = new Pool(getPoolConfig());
+function getPoolPromise(scope = getActiveScope()) {
+  if (!poolPromises.has(scope)) {
+    poolPromises.set(scope, new Pool(getPoolConfig(scope)));
   }
-  return poolPromise;
+  return poolPromises.get(scope);
 }
 
-async function getPool() {
-  const pool = getPoolPromise();
-  await ensureCoreSchema();
+async function getPool(scope = getActiveScope()) {
+  const pool = getPoolPromise(scope);
+  await ensureCoreSchema(scope);
   return pool;
 }
 
@@ -164,6 +319,10 @@ function mapDamageCase(record) {
     insuranceClaimNumber: record.SFAVERSICHERUNGSSCHADENNR || "",
     insuranceEmail: record.SFAEMAILVERSICHERUNG || "",
     invoiceTo: record.SFARECHNUNGAN || "",
+    invoiceRecipientType: record.SFARECHNUNGTYP || "verursacher",
+    invoiceAddress: record.SFARECHNUNGADRESSE || "",
+    invoicePhone: record.SFARECHNUNGTEL || "",
+    invoiceEmail: record.SFARECHNUNGMAIL || "",
     cashDesk: record.SFAKASSE || "",
     otherCosts: Number(record.SFASONSTIGEKOSTEN || 0),
     openClaimAmount: Number(record.SFAOFFENEFORDERUNG || 0),
@@ -292,12 +451,13 @@ async function createDamageCase(damageCase) {
             "SFAID", "SFANUMMER", "SFAGILTAB", "SFASTATUS", "SFABETREFF", "SFABEZEICHNUNG", "SFABESCHREIBUNG", "SFADATUM", 
             "SFASTRASSE", "SFAABSCHNITTVON", "SFAABSCHNITTBIS", "SFARICHTUNG", "SFAKMSTATION", "SFALANDKREIS", 
             "SFAKENNZEICHEN", "SFAZULASSUNGSSTELLE", "SFAVERURSACHER", "SFAVERURSACHERADRESSE", "SFAVERSICHERUNG", 
-            "SFAVERSICHERUNGSSCHEINNR", "SFAVERSICHERUNGSSCHADENNR", "SFAEMAILVERSICHERUNG", "SFARECHNUNGAN", "SFAKASSE", 
-            "SFASONSTIGEKOSTEN", "SFAOFFENEFORDERUNG", "SFAKOSTENKOMPLETT", "SFABEARBEITER", "SFAWIEDERVORLAGEAM", 
+            "SFAVERSICHERUNGSSCHEINNR", "SFAVERSICHERUNGSSCHADENNR", "SFAEMAILVERSICHERUNG", "SFARECHNUNGAN", "SFARECHNUNGTYP", 
+            "SFARECHNUNGADRESSE", "SFARECHNUNGTEL", "SFARECHNUNGMAIL", "SFAKASSE", "SFASONSTIGEKOSTEN", 
+            "SFAOFFENEFORDERUNG", "SFAKOSTENKOMPLETT", "SFABEARBEITER", "SFAWIEDERVORLAGEAM", 
             "SFAERFORDERLICHEARBEITEN", "SFADIENSTSTELLE", "SFAERSTELLTVON", "SFAERSTELLTAM", "SFAAENDERUNGAM"
         )
         VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
         )
     `,
     [
@@ -324,6 +484,10 @@ async function createDamageCase(damageCase) {
       damageCase.insuranceClaimNumber || "",
       damageCase.insuranceEmail || "",
       damageCase.invoiceTo || "",
+      damageCase.invoiceRecipientType || "verursacher",
+      damageCase.invoiceAddress || "",
+      damageCase.invoicePhone || "",
+      damageCase.invoiceEmail || "",
       damageCase.cashDesk || "",
       parseFloat(damageCase.otherCosts || 0),
       parseFloat(damageCase.openClaimAmount || 0),
@@ -404,10 +568,11 @@ async function updateDamageCase(damageCaseId, damageCase) {
             "SFASTRASSE" = $5, "SFAABSCHNITTVON" = $6, "SFAABSCHNITTBIS" = $7, "SFARICHTUNG" = $8, "SFAKMSTATION" = $9, 
             "SFALANDKREIS" = $10, "SFAKENNZEICHEN" = $11, "SFAZULASSUNGSSTELLE" = $12, "SFAVERURSACHER" = $13, 
             "SFAVERURSACHERADRESSE" = $14, "SFAVERSICHERUNG" = $15, "SFAVERSICHERUNGSSCHEINNR" = $16, 
-            "SFAVERSICHERUNGSSCHADENNR" = $17, "SFAEMAILVERSICHERUNG" = $18, "SFARECHNUNGAN" = $19, "SFAKASSE" = $20, 
-            "SFASONSTIGEKOSTEN" = $21, "SFAOFFENEFORDERUNG" = $22, "SFAKOSTENKOMPLETT" = $23, "SFABEARBEITER" = $24, 
-            "SFAWIEDERVORLAGEAM" = $25, "SFAERFORDERLICHEARBEITEN" = $26, "SFAAENDERUNGAM" = CURRENT_TIMESTAMP
-        WHERE "SFAID" = $27
+            "SFAVERSICHERUNGSSCHADENNR" = $17, "SFAEMAILVERSICHERUNG" = $18, "SFARECHNUNGAN" = $19, "SFARECHNUNGTYP" = $20, 
+            "SFARECHNUNGADRESSE" = $21, "SFARECHNUNGTEL" = $22, "SFARECHNUNGMAIL" = $23, "SFAKASSE" = $24, 
+            "SFASONSTIGEKOSTEN" = $25, "SFAOFFENEFORDERUNG" = $26, "SFAKOSTENKOMPLETT" = $27, "SFABEARBEITER" = $28, 
+            "SFAWIEDERVORLAGEAM" = $29, "SFAERFORDERLICHEARBEITEN" = $30, "SFAAENDERUNGAM" = CURRENT_TIMESTAMP
+          WHERE "SFAID" = $31
     `,
     [
       damageCase.status || "Neu",
@@ -429,6 +594,10 @@ async function updateDamageCase(damageCaseId, damageCase) {
       damageCase.insuranceClaimNumber || "",
       damageCase.insuranceEmail || "",
       damageCase.invoiceTo || "",
+      damageCase.invoiceRecipientType || "verursacher",
+      damageCase.invoiceAddress || "",
+      damageCase.invoicePhone || "",
+      damageCase.invoiceEmail || "",
       damageCase.cashDesk || "",
       parseFloat(damageCase.otherCosts || 0),
       parseFloat(damageCase.openClaimAmount || 0),
@@ -443,7 +612,437 @@ async function updateDamageCase(damageCaseId, damageCase) {
   return getDamageCaseById(damageCaseId);
 }
 
+async function createCatalogItem(item) {
+  const pool = await getPool();
+  const catalogId = `KAT_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  await pool.query(
+    `
+      INSERT INTO "SYSKATALOG" (
+        "KATID", "KATBEZEICHNUNG", "KATBESCHREIBUNG", "KATKATEGORIE", "KATEINHEIT", "KATSATZ", "KATERSTELLTVON", "KATERSTELLTAM", "KATAEENDERUNGAM"
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `,
+    [
+      catalogId,
+      item.bezeichnung || "",
+      item.beschreibung || "",
+      item.kategorie || "Sonstiges",
+      item.einheit || "Stück",
+      parseFloat(item.satz || 0),
+      item.erstellt_von || "system",
+    ]
+  );
+
+  return getCatalogItemById(catalogId);
+}
+
+async function getCatalogItemById(catalogId) {
+  const pool = await getPool();
+  const result = await pool.query(
+    'SELECT * FROM "SYSKATALOG" WHERE "KATID" = $1 LIMIT 1',
+    [catalogId]
+  );
+  const record = result.rows[0];
+  return record ? mapCatalogItem(record) : null;
+}
+
+function mapCatalogItem(record) {
+  return {
+    id: record.KATID,
+    bezeichnung: record.KATBEZEICHNUNG || "",
+    beschreibung: record.KATBESCHREIBUNG || "",
+    kategorie: record.KATKATEGORIE || "Sonstiges",
+    einheit: record.KATEINHEIT || "Stück",
+    satz: Number(record.KATSATZ || 0),
+    aktiv: Boolean(record.KATAKTIV),
+    erstelltVon: record.KATERSTELLTVON || "",
+    erstelltAm: record.KATERSTELLTAM,
+    aenderungAm: record.KATAEENDERUNGAM,
+  };
+}
+
+async function listCatalogItems(onlyActive = true) {
+  const pool = await getPool();
+  let query = 'SELECT * FROM "SYSKATALOG"';
+  const params = [];
+
+  if (onlyActive) {
+    query += ' WHERE "KATAKTIV" = true';
+  }
+
+  query += ' ORDER BY "KATKATEGORIE", "KATBEZEICHNUNG"';
+
+  const result = await pool.query(query, params);
+  return result.rows.map(mapCatalogItem);
+}
+
+async function updateCatalogItem(catalogId, item) {
+  const pool = await getPool();
+
+  await pool.query(
+    `
+      UPDATE "SYSKATALOG"
+      SET 
+        "KATBEZEICHNUNG" = $1,
+        "KATBESCHREIBUNG" = $2,
+        "KATKATEGORIE" = $3,
+        "KATEINHEIT" = $4,
+        "KATSATZ" = $5,
+        "KATAKTIV" = $6,
+        "KATAEENDERUNGAM" = CURRENT_TIMESTAMP
+      WHERE "KATID" = $7
+    `,
+    [
+      item.bezeichnung || "",
+      item.beschreibung || "",
+      item.kategorie || "Sonstiges",
+      item.einheit || "Stück",
+      parseFloat(item.satz || 0),
+      item.aktiv !== false,
+      catalogId,
+    ]
+  );
+
+  return getCatalogItemById(catalogId);
+}
+
+async function deleteCatalogItem(catalogId) {
+  const pool = await getPool();
+  
+  await pool.query(
+    'UPDATE "SYSKATALOG" SET "KATAKTIV" = false WHERE "KATID" = $1',
+    [catalogId]
+  );
+}
+
+async function addCatalogItemToCase(caseId, catalogId, menge) {
+  const pool = await getPool();
+  const posId = `KATPOS_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  // Get catalog item to calculate total price
+  const catalogItem = await getCatalogItemById(catalogId);
+  if (!catalogItem) {
+    throw new Error("Katalogposition nicht gefunden");
+  }
+
+  const gesamtpreis = catalogItem.satz * parseFloat(menge);
+
+  await pool.query(
+    `
+      INSERT INTO "SFOKATALOGPOSITIONEN" (
+        "KATPOSID", "SFAID", "KATID", "KATPOSMENGE", "KATPOSGESAMTPREIS", "KATPOSHINZUGEFUEGTAM"
+      )
+      VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+    `,
+    [posId, caseId, catalogId, parseFloat(menge), gesamtpreis]
+  );
+
+  return getCatalogPositionById(posId);
+}
+
+async function getCatalogPositionById(posId) {
+  const pool = await getPool();
+  const result = await pool.query(
+    `
+      SELECT kp.*, k."KATBEZEICHNUNG", k."KATEINHEIT", k."KATSATZ"
+      FROM "SFOKATALOGPOSITIONEN" kp
+      JOIN "SYSKATALOG" k ON kp."KATID" = k."KATID"
+      WHERE kp."KATPOSID" = $1 AND kp."KATPOSGELOESCHTAM" IS NULL
+      LIMIT 1
+    `,
+    [posId]
+  );
+  
+  const record = result.rows[0];
+  return record ? {
+    id: record.KATPOSID,
+    caseId: record.SFAID,
+    catalogId: record.KATID,
+    bezeichnung: record.KATBEZEICHNUNG || "",
+    einheit: record.KATEINHEIT || "Stück",
+    menge: Number(record.KATPOSMENGE || 0),
+    satz: Number(record.KATSATZ || 0),
+    gesamtpreis: Number(record.KATPOSGESAMTPREIS || 0),
+    hinzugefuegtAm: record.KATPOSHINZUGEFUEGTAM,
+  } : null;
+}
+
+async function getCatalogItemsForCase(caseId) {
+  const pool = await getPool();
+  const result = await pool.query(
+    `
+      SELECT kp.*, k."KATBEZEICHNUNG", k."KATBESCHREIBUNG", k."KATEINHEIT", k."KATSATZ"
+      FROM "SFOKATALOGPOSITIONEN" kp
+      JOIN "SYSKATALOG" k ON kp."KATID" = k."KATID"
+      WHERE kp."SFAID" = $1 AND kp."KATPOSGELOESCHTAM" IS NULL
+      ORDER BY kp."KATPOSHINZUGEFUEGTAM"
+    `,
+    [caseId]
+  );
+
+  return result.rows.map(record => ({
+    id: record.KATPOSID,
+    caseId: record.SFAID,
+    catalogId: record.KATID,
+    bezeichnung: record.KATBEZEICHNUNG || "",
+    beschreibung: record.KATBESCHREIBUNG || "",
+    einheit: record.KATEINHEIT || "Stück",
+    menge: Number(record.KATPOSMENGE || 0),
+    satz: Number(record.KATSATZ || 0),
+    gesamtpreis: Number(record.KATPOSGESAMTPREIS || 0),
+  }));
+}
+
+async function removeCatalogItemFromCase(posId) {
+  const pool = await getPool();
+  
+  await pool.query(
+    'UPDATE "SFOKATALOGPOSITIONEN" SET "KATPOSGELOESCHTAM" = CURRENT_TIMESTAMP WHERE "KATPOSID" = $1',
+    [posId]
+  );
+}
+
+function mapInsuranceCatalogEntry(record) {
+  return {
+    id: record.VERSID,
+    name: record.VERSNAME || "",
+    contactPerson: record.VERSANSPRECHPARTNER || "",
+    phone: record.VERSTELEFON || "",
+    email: record.VERSMAIL || "",
+    street: record.VERSSTRASSE || "",
+    zipCode: record.VERSPLZ || "",
+    city: record.VERSORT || "",
+    country: record.VERSLAND || "Deutschland",
+    description: record.VERSBESCHREIBUNG || "",
+    active: Boolean(record.VERSAKTIV),
+    createdBy: record.VERSERSTELLTVON || "",
+    createdAt: record.VERSERSTELLTAM,
+    updatedAt: record.VERSAENDERUNGAM,
+  };
+}
+
+async function createInsuranceCatalogEntry(entry) {
+  const pool = await getPool();
+  const insuranceId = `VERS_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  await pool.query(
+    `
+      INSERT INTO "SYSVERSICHERUNGEN" (
+        "VERSID", "VERSNAME", "VERSANSPRECHPARTNER", "VERSTELEFON", "VERSMAIL", "VERSSTRASSE", "VERSPLZ", "VERSORT", "VERSLAND", "VERSBESCHREIBUNG", "VERSAKTIV", "VERSERSTELLTVON", "VERSERSTELLTAM", "VERSAENDERUNGAM"
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true, $11, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `,
+    [
+      insuranceId,
+      entry.name || "",
+      entry.contactPerson || "",
+      entry.phone || "",
+      entry.email || "",
+      entry.street || "",
+      entry.zipCode || "",
+      entry.city || "",
+      entry.country || "Deutschland",
+      entry.description || "",
+      entry.createdBy || "system",
+    ],
+  );
+
+  return getInsuranceCatalogEntryById(insuranceId);
+}
+
+async function getInsuranceCatalogEntryById(insuranceId) {
+  const pool = await getPool();
+  const result = await pool.query(
+    'SELECT * FROM "SYSVERSICHERUNGEN" WHERE "VERSID" = $1 LIMIT 1',
+    [insuranceId],
+  );
+  const record = result.rows[0];
+  return record ? mapInsuranceCatalogEntry(record) : null;
+}
+
+async function listInsuranceCatalogEntries(onlyActive = true) {
+  const pool = await getPool();
+  let query = 'SELECT * FROM "SYSVERSICHERUNGEN"';
+
+  if (onlyActive) {
+    query += ' WHERE "VERSAKTIV" = true';
+  }
+
+  query += ' ORDER BY "VERSNAME"';
+
+  const result = await pool.query(query);
+  return result.rows.map(mapInsuranceCatalogEntry);
+}
+
+async function updateInsuranceCatalogEntry(insuranceId, entry) {
+  const pool = await getPool();
+
+  await pool.query(
+    `
+      UPDATE "SYSVERSICHERUNGEN"
+      SET
+        "VERSNAME" = $1,
+        "VERSANSPRECHPARTNER" = $2,
+        "VERSTELEFON" = $3,
+        "VERSMAIL" = $4,
+        "VERSSTRASSE" = $5,
+        "VERSPLZ" = $6,
+        "VERSORT" = $7,
+        "VERSLAND" = $8,
+        "VERSBESCHREIBUNG" = $9,
+        "VERSAKTIV" = $10,
+        "VERSAENDERUNGAM" = CURRENT_TIMESTAMP
+      WHERE "VERSID" = $11
+    `,
+    [
+      entry.name || "",
+      entry.contactPerson || "",
+      entry.phone || "",
+      entry.email || "",
+      entry.street || "",
+      entry.zipCode || "",
+      entry.city || "",
+      entry.country || "Deutschland",
+      entry.description || "",
+      entry.active !== false,
+      insuranceId,
+    ],
+  );
+
+  return getInsuranceCatalogEntryById(insuranceId);
+}
+
+async function deleteInsuranceCatalogEntry(insuranceId) {
+  const pool = await getPool();
+
+  await pool.query(
+    'UPDATE "SYSVERSICHERUNGEN" SET "VERSAKTIV" = false, "VERSAENDERUNGAM" = CURRENT_TIMESTAMP WHERE "VERSID" = $1',
+    [insuranceId],
+  );
+}
+
+function mapCashDeskEntry(record) {
+  return {
+    id: record.KASSEID,
+    name: record.KASSEBEZEICHNUNG || "",
+    active: Boolean(record.KASSEAKTIV),
+    createdBy: record.KASSEERSTELLTVON || "",
+    createdAt: record.KASSEERSTELLTAM,
+    updatedAt: record.KASSEAENDERUNGAM,
+  };
+}
+
+async function createCashDeskEntry(entry) {
+  const pool = await getPool();
+  const cashDeskId = `KASSE_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  await pool.query(
+    `
+      INSERT INTO "SYSKASSEN" (
+        "KASSEID", "KASSEBEZEICHNUNG", "KASSEAKTIV", "KASSEERSTELLTVON", "KASSEERSTELLTAM", "KASSEAENDERUNGAM"
+      )
+      VALUES ($1, $2, true, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `,
+    [cashDeskId, entry.name || "", entry.createdBy || "system"],
+  );
+
+  return getCashDeskEntryById(cashDeskId);
+}
+
+async function getCashDeskEntryById(cashDeskId) {
+  const pool = await getPool();
+  const result = await pool.query(
+    'SELECT * FROM "SYSKASSEN" WHERE "KASSEID" = $1 LIMIT 1',
+    [cashDeskId],
+  );
+  const record = result.rows[0];
+  return record ? mapCashDeskEntry(record) : null;
+}
+
+async function listCashDeskEntries(onlyActive = true) {
+  const pool = await getPool();
+  let query = 'SELECT * FROM "SYSKASSEN"';
+
+  if (onlyActive) {
+    query += ' WHERE "KASSEAKTIV" = true';
+  }
+
+  query += ' ORDER BY "KASSEBEZEICHNUNG"';
+  const result = await pool.query(query);
+  return result.rows.map(mapCashDeskEntry);
+}
+
+async function updateCashDeskEntry(cashDeskId, entry) {
+  const pool = await getPool();
+
+  await pool.query(
+    `
+      UPDATE "SYSKASSEN"
+      SET
+        "KASSEBEZEICHNUNG" = $1,
+        "KASSEAKTIV" = $2,
+        "KASSEAENDERUNGAM" = CURRENT_TIMESTAMP
+      WHERE "KASSEID" = $3
+    `,
+    [entry.name || "", entry.active !== false, cashDeskId],
+  );
+
+  return getCashDeskEntryById(cashDeskId);
+}
+
+async function deleteCashDeskEntry(cashDeskId) {
+  const pool = await getPool();
+  await pool.query(
+    'UPDATE "SYSKASSEN" SET "KASSEAKTIV" = false, "KASSEAENDERUNGAM" = CURRENT_TIMESTAMP WHERE "KASSEID" = $1',
+    [cashDeskId],
+  );
+}
+
+async function hasActiveCashDesk(name) {
+  const pool = await getPool();
+  const normalizedName = String(name || "").trim();
+  if (!normalizedName) {
+    return false;
+  }
+
+  const result = await pool.query(
+    `
+      SELECT 1
+      FROM "SYSKASSEN"
+      WHERE "KASSEAKTIV" = true
+        AND LOWER(TRIM("KASSEBEZEICHNUNG")) = LOWER(TRIM($1))
+      LIMIT 1
+    `,
+    [normalizedName],
+  );
+
+  return result.rowCount > 0;
+}
+
+function resetPoolsForScope(scope) {
+  const normalizedScope = scope === "dummy" ? "dummy" : "main";
+  const pool = poolPromises.get(normalizedScope);
+  if (pool) {
+    pool.end().catch((error) => {
+      console.error(`Error closing pool for scope ${normalizedScope}:`, error);
+    });
+  }
+  poolPromises.delete(normalizedScope);
+  schemaPromises.delete(normalizedScope);
+}
+
+function getDbConfig(scope = getActiveScope()) {
+  const config = loadConfig();
+  const dbConfig =
+    scope === "dummy"
+      ? config.dummyDb || {}
+      : config.db || {};
+  return dbConfig;
+}
+
 module.exports = {
+  runWithScope,
   connect,
   createDamageCase,
   createUserCode,
@@ -453,4 +1052,26 @@ module.exports = {
   listDamageCases,
   updateDamageCase,
   upsertUser,
+  createCatalogItem,
+  getCatalogItemById,
+  listCatalogItems,
+  updateCatalogItem,
+  deleteCatalogItem,
+  addCatalogItemToCase,
+  getCatalogPositionById,
+  getCatalogItemsForCase,
+  removeCatalogItemFromCase,
+  createInsuranceCatalogEntry,
+  getInsuranceCatalogEntryById,
+  listInsuranceCatalogEntries,
+  updateInsuranceCatalogEntry,
+  deleteInsuranceCatalogEntry,
+  createCashDeskEntry,
+  getCashDeskEntryById,
+  listCashDeskEntries,
+  updateCashDeskEntry,
+  deleteCashDeskEntry,
+  hasActiveCashDesk,
+  resetPoolsForScope,
+  getDbConfig,
 };

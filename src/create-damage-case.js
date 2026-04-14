@@ -3,6 +3,15 @@ const state = {
   currentCase: null,
   cases: [],
   appliedScope: "own",
+  catalogItems: [],
+  catalogData: {},
+  insuranceCatalog: [],
+  insuranceCatalogById: {},
+  selectedInsuranceId: "",
+  cashDeskCatalog: [],
+  responsiblePartyAddressValid: true,
+  responsiblePartyAddressLookupTimer: null,
+  responsiblePartyAddressSuggestions: [],
 };
 
 const elements = {
@@ -31,23 +40,131 @@ const elements = {
   registrationOffice: document.getElementById("registration-office"),
   responsibleParty: document.getElementById("responsible-party"),
   responsiblePartyAddress: document.getElementById("responsible-party-address"),
+  responsiblePartyPostalCode: document.getElementById("responsible-party-postal-code"),
+  responsiblePartyCity: document.getElementById("responsible-party-city"),
+  responsiblePartyStreet: document.getElementById("responsible-party-street"),
+  responsiblePartyHouseNumber: document.getElementById("responsible-party-house-number"),
+  responsiblePartyPostalCodeList: document.getElementById("responsible-party-postal-code-list"),
+  responsiblePartyCityList: document.getElementById("responsible-party-city-list"),
+  responsiblePartyStreetList: document.getElementById("responsible-party-street-list"),
+  responsiblePartyAddressHint: document.getElementById("responsible-party-address-hint"),
+  insuranceCatalogSelect: document.getElementById("insurance-catalog-select"),
   insurance: document.getElementById("insurance"),
+  invoiceRecipientType: document.getElementById("invoice-recipient-type"),
   invoiceTo: document.getElementById("invoice-to"),
+  invoiceEmail: document.getElementById("invoice-email"),
+  invoicePhone: document.getElementById("invoice-phone"),
+  invoiceAddress: document.getElementById("invoice-address"),
   insurancePolicyNumber: document.getElementById("insurance-policy-number"),
   insuranceClaimNumber: document.getElementById("insurance-claim-number"),
   insuranceEmail: document.getElementById("insurance-email"),
+  insuranceMasterName: document.getElementById("insurance-master-name"),
+  insuranceMasterContact: document.getElementById("insurance-master-contact"),
+  insuranceMasterPhone: document.getElementById("insurance-master-phone"),
+  insuranceMasterEmail: document.getElementById("insurance-master-email"),
+  insuranceMasterStreet: document.getElementById("insurance-master-street"),
+  insuranceMasterZip: document.getElementById("insurance-master-zip"),
+  insuranceMasterCity: document.getElementById("insurance-master-city"),
+  insuranceMasterCountry: document.getElementById("insurance-master-country"),
   cashDesk: document.getElementById("cash-desk"),
   otherCosts: document.getElementById("other-costs"),
   openClaimAmount: document.getElementById("open-claim-amount"),
   assignedTo: document.getElementById("assigned-to"),
   followUpDate: document.getElementById("follow-up-date"),
   costsComplete: document.getElementById("costs-complete"),
+  costsCompleteRequirements: document.getElementById("costs-complete-requirements"),
   forwardCase: document.getElementById("forward-case"),
   approveCase: document.getElementById("approve-case"),
+  catalogSelect: document.getElementById("catalog-select"),
+  catalogMenge: document.getElementById("catalog-menge"),
+  catalogAddBtn: document.getElementById("catalog-add-btn"),
+  catalogItemsSection: document.getElementById("catalog-items-section"),
+  catalogItemsList: document.getElementById("catalog-items-list"),
+  catalogTotal: document.getElementById("catalog-total"),
 };
 
 function getRequiredWorkInputs() {
   return Array.from(document.querySelectorAll(".required-work"));
+}
+
+function getCatalogCostTotal() {
+  return (state.catalogItems || []).reduce(
+    (total, item) => total + Number(item?.gesamtpreis || 0),
+    0,
+  );
+}
+
+function hasValidCostsCompletePrerequisites() {
+  const responsiblePartyAddressValid = Boolean(state.responsiblePartyAddressValid);
+  const hasResponsibleParty = Boolean(elements.responsibleParty.value.trim());
+  const hasInsurance = Boolean(elements.insurance.value.trim());
+  const hasCashDesk = Boolean(elements.cashDesk.value.trim());
+  const hasAccidentLocation = Boolean(elements.street.value.trim());
+  const hasPlateNumber = Boolean(elements.plateNumber.value.trim());
+  const hasCalculatedCosts =
+    getCatalogCostTotal() > 0 ||
+    Number(elements.otherCosts.value || 0) > 0 ||
+    Number(elements.openClaimAmount.value || 0) > 0;
+
+  return (
+    responsiblePartyAddressValid &&
+    hasResponsibleParty &&
+    hasInsurance &&
+    hasCashDesk &&
+    hasAccidentLocation &&
+    hasPlateNumber &&
+    hasCalculatedCosts
+  );
+}
+
+function updateCostsCompleteControlState() {
+  const allowed = hasValidCostsCompletePrerequisites();
+  elements.costsComplete.disabled = !allowed;
+
+  if (!allowed && elements.costsComplete.checked) {
+    elements.costsComplete.checked = false;
+  }
+}
+
+function updateCostsCompleteRequirementsInfo() {
+  if (!elements.costsCompleteRequirements) {
+    return;
+  }
+
+  const missingFields = [];
+
+  if (!elements.responsibleParty.value.trim()) {
+    missingFields.push("Verursacher");
+  }
+  if (!state.responsiblePartyAddressValid || !elements.responsiblePartyAddress.value.trim()) {
+    missingFields.push("gültige Verursacher-Adresse");
+  }
+  if (!elements.insurance.value.trim()) {
+    missingFields.push("Versicherung");
+  }
+  if (!elements.cashDesk.value.trim()) {
+    missingFields.push("Kasse");
+  }
+  if (!elements.street.value.trim()) {
+    missingFields.push("Unfallort");
+  }
+  if (!elements.plateNumber.value.trim()) {
+    missingFields.push("Kennzeichen");
+  }
+  if (getCatalogCostTotal() <= 0 && Number(elements.otherCosts.value || 0) <= 0 && Number(elements.openClaimAmount.value || 0) <= 0) {
+    missingFields.push("berechnete Kosten");
+  }
+
+  if (missingFields.length === 0) {
+    elements.costsCompleteRequirements.textContent =
+      "Alle Voraussetzungen erfüllt. Der Haken für \"Kosten komplett erfasst\" kann gesetzt werden.";
+    elements.costsCompleteRequirements.style.color = "#1c7d3c";
+    return;
+  }
+
+  elements.costsCompleteRequirements.textContent =
+    `Es fehlen noch: ${missingFields.join(", ")}.`;
+  elements.costsCompleteRequirements.style.color = "var(--lbm-gray-dark)";
 }
 
 async function apiFetch(url, options = {}) {
@@ -76,6 +193,470 @@ async function apiFetch(url, options = {}) {
   }
 
   return body;
+}
+
+async function loadCatalogData() {
+  try {
+    const catalog = await apiFetch("/api/catalog");
+    state.catalogData = {};
+    catalog.forEach(item => {
+      state.catalogData[item.id] = item;
+    });
+    
+    // Update dropdown
+    const select = elements.catalogSelect;
+    select.innerHTML = '<option value="">-- Material/Leistung wählen --</option>';
+    catalog.forEach(item => {
+      const option = document.createElement('option');
+      option.value = item.id;
+      option.textContent = `${item.bezeichnung} (${item.satz.toFixed(2)} €/${item.einheit})`;
+      select.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Katalog konnte nicht geladen werden", error);
+  }
+}
+
+async function loadInsuranceCatalogData() {
+  try {
+    const catalog = await apiFetch("/api/insurance-catalog");
+    state.insuranceCatalog = catalog || [];
+    state.insuranceCatalogById = {};
+
+    const select = elements.insuranceCatalogSelect;
+    select.innerHTML = '<option value="">-- Versicherung aus Katalog wählen --</option>';
+
+    state.insuranceCatalog.forEach((item) => {
+      state.insuranceCatalogById[item.id] = item;
+      const option = document.createElement("option");
+      option.value = item.id;
+      option.textContent = `${item.name}${item.city ? ` - ${item.city}` : ""}${item.email ? ` (${item.email})` : ""}`;
+      select.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Versicherungs-Katalog konnte nicht geladen werden", error);
+  }
+}
+
+function renderCashDeskOptions(selectedValue = "") {
+  const uniqueNames = [...new Set((state.cashDeskCatalog || []).map((item) => item?.name).filter(Boolean))];
+  elements.cashDesk.innerHTML = "";
+
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "-- Kasse aus Katalog wählen --";
+  elements.cashDesk.appendChild(placeholder);
+
+  uniqueNames.forEach((name) => {
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    elements.cashDesk.appendChild(option);
+  });
+
+  if (selectedValue && !uniqueNames.includes(selectedValue)) {
+    const legacyOption = document.createElement("option");
+    legacyOption.value = selectedValue;
+    legacyOption.textContent = selectedValue;
+    elements.cashDesk.appendChild(legacyOption);
+  }
+
+  elements.cashDesk.value = selectedValue || "";
+  updateCostsCompleteRequirementsInfo();
+  updateCostsCompleteControlState();
+}
+
+async function loadCashDeskCatalogData() {
+  try {
+    const entries = await apiFetch("/api/cash-desks");
+    state.cashDeskCatalog = Array.isArray(entries)
+      ? entries
+          .filter((item) => item?.active !== false && item?.name)
+          .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "de"))
+      : [];
+  } catch (error) {
+    console.error("Kassen-Katalog konnte nicht geladen werden", error);
+    state.cashDeskCatalog = [];
+  }
+
+  renderCashDeskOptions(elements.cashDesk.value || "");
+}
+
+function clearInsuranceMasterFields() {
+  elements.insuranceMasterName.value = "";
+  elements.insuranceMasterContact.value = "";
+  elements.insuranceMasterPhone.value = "";
+  elements.insuranceMasterEmail.value = "";
+  elements.insuranceMasterStreet.value = "";
+  elements.insuranceMasterZip.value = "";
+  elements.insuranceMasterCity.value = "";
+  elements.insuranceMasterCountry.value = "";
+}
+
+function setInsuranceFieldsLocked(locked) {
+  elements.insurance.readOnly = locked;
+  elements.insuranceEmail.readOnly = locked;
+  elements.insurancePolicyNumber.readOnly = locked;
+  elements.insuranceClaimNumber.readOnly = locked;
+}
+
+function setInvoiceRecipientLocked(locked) {
+  elements.invoiceTo.readOnly = locked;
+  elements.invoiceEmail.readOnly = locked;
+  elements.invoicePhone.readOnly = locked;
+  elements.invoiceAddress.readOnly = locked;
+}
+
+function getResponsiblePartyAddressParts() {
+  return {
+    postalCode: elements.responsiblePartyPostalCode.value.trim(),
+    city: elements.responsiblePartyCity.value.trim(),
+    street: elements.responsiblePartyStreet.value.trim(),
+    houseNumber: elements.responsiblePartyHouseNumber.value.trim(),
+  };
+}
+
+function buildResponsiblePartyAddress(parts = getResponsiblePartyAddressParts()) {
+  const streetLine = [parts.street, parts.houseNumber].filter(Boolean).join(" ");
+  const cityLine = [parts.postalCode, parts.city].filter(Boolean).join(" ");
+
+  return [streetLine, cityLine].filter(Boolean).join(", ");
+}
+
+function splitResponsiblePartyAddress(value) {
+  const input = String(value || "").trim();
+  if (!input) {
+    return { postalCode: "", city: "", street: "", houseNumber: "" };
+  }
+
+  const addressParts = input.split(",").map((part) => part.trim()).filter(Boolean);
+  const streetPart = addressParts[0] || "";
+  const cityPart = addressParts[1] || "";
+
+  const streetMatch = streetPart.match(/^(.*?)(?:\s+(\d+[a-zA-Z]?))?$/);
+  const cityMatch = cityPart.match(/^(\d{4,5})\s+(.*)$/);
+
+  return {
+    street: streetMatch?.[1]?.trim() || streetPart,
+    houseNumber: streetMatch?.[2]?.trim() || "",
+    postalCode: cityMatch?.[1]?.trim() || "",
+    city: cityMatch?.[2]?.trim() || cityPart,
+  };
+}
+
+function syncResponsiblePartyAddressValue() {
+  elements.responsiblePartyAddress.value = buildResponsiblePartyAddress();
+}
+
+function applyResponsiblePartyAddressFallbackValue() {
+  const fallbackValue = "Lookup nicht verfuegbar";
+
+  if (!elements.responsiblePartyCity.value.trim()) {
+    elements.responsiblePartyCity.value = fallbackValue;
+  }
+
+  if (!elements.responsiblePartyStreet.value.trim()) {
+    elements.responsiblePartyStreet.value = fallbackValue;
+  }
+
+  if (!elements.district.value.trim()) {
+    elements.district.value = fallbackValue;
+  }
+
+  syncResponsiblePartyAddressValue();
+}
+
+function updateResponsiblePartyAddressSuggestions(matches) {
+  state.responsiblePartyAddressSuggestions = Array.isArray(matches) ? matches : [];
+
+  const postalCodes = [...new Set(state.responsiblePartyAddressSuggestions.map((item) => item.zipCode).filter(Boolean))];
+  const cities = [...new Set(state.responsiblePartyAddressSuggestions.map((item) => item.city).filter(Boolean))];
+  const streets = [...new Set(state.responsiblePartyAddressSuggestions.map((item) => item.street).filter(Boolean))];
+
+  if (elements.responsiblePartyPostalCodeList) {
+    elements.responsiblePartyPostalCodeList.innerHTML = postalCodes
+      .map((value) => `<option value="${value}"></option>`)
+      .join("");
+  }
+
+  if (elements.responsiblePartyCityList) {
+    elements.responsiblePartyCityList.innerHTML = cities
+      .map((value) => `<option value="${value}"></option>`)
+      .join("");
+  }
+
+  if (elements.responsiblePartyStreetList) {
+    elements.responsiblePartyStreetList.innerHTML = streets
+      .map((value) => `<option value="${value}"></option>`)
+      .join("");
+  }
+}
+
+function setResponsiblePartyAddressHint(message, isError = false) {
+  if (!elements.responsiblePartyAddressHint) {
+    return;
+  }
+
+  elements.responsiblePartyAddressHint.textContent =
+    message || "PLZ eingeben und passende Orte und Straßen auswählen.";
+  elements.responsiblePartyAddressHint.style.color = isError
+    ? "#a51d2d"
+    : "var(--lbm-gray-dark)";
+}
+
+async function lookupResponsiblePartyAddress() {
+  const parts = getResponsiblePartyAddressParts();
+  const query = new URLSearchParams({
+    postalCode: parts.postalCode,
+    city: parts.city,
+    street: parts.street,
+    houseNumber: parts.houseNumber,
+  });
+
+  if (!parts.postalCode && !parts.city && !parts.street && !parts.houseNumber) {
+    state.responsiblePartyAddressValid = true;
+    updateResponsiblePartyAddressSuggestions([]);
+    setResponsiblePartyAddressHint("PLZ eingeben und passende Orte und Straßen auswählen.");
+    return;
+  }
+
+  try {
+    const result = await apiFetch(
+      `/api/lookup/address?${query.toString()}`,
+    );
+    const matches = result?.matches || [];
+    updateResponsiblePartyAddressSuggestions(matches);
+
+    if (matches.length === 1) {
+      const match = matches[0];
+      if (!parts.postalCode && match.zipCode) {
+        elements.responsiblePartyPostalCode.value = match.zipCode;
+      }
+      if (!parts.city && match.city) {
+        elements.responsiblePartyCity.value = match.city;
+      }
+      if (!parts.street && match.streetName) {
+        elements.responsiblePartyStreet.value = match.streetName;
+      }
+      if (!parts.houseNumber && match.houseNumber) {
+        elements.responsiblePartyHouseNumber.value = match.houseNumber;
+      }
+      if (!parts.city && match.district && !elements.district.value) {
+        elements.district.value = match.district;
+      }
+      syncResponsiblePartyAddressValue();
+    }
+
+    const normalizedCurrent = buildResponsiblePartyAddress().toLowerCase().replace(/\s+/g, " ").replace(/,/g, "");
+    const exactMatch = Boolean(
+      result?.exactMatch ||
+        matches.some((item) => (item.address || "").toLowerCase().replace(/\s+/g, " ").replace(/,/g, "") === normalizedCurrent),
+    );
+    state.responsiblePartyAddressValid = exactMatch;
+
+    if (exactMatch) {
+      setResponsiblePartyAddressHint("Adresse im Verzeichnis gefunden.");
+    } else if (matches.length > 0) {
+      setResponsiblePartyAddressHint(
+        "Passende Adressen gefunden. Bitte einen Vorschlag auswählen.",
+      );
+    } else {
+      applyResponsiblePartyAddressFallbackValue();
+      setResponsiblePartyAddressHint(
+        "Keine passende Adresse gefunden. Bitte prüfen oder einen Vorschlag auswählen.",
+        true,
+      );
+    }
+  } catch (error) {
+    console.warn("Address lookup failed", error);
+    applyResponsiblePartyAddressFallbackValue();
+    state.responsiblePartyAddressValid = false;
+    setResponsiblePartyAddressHint(
+      "Adressprüfung derzeit nicht verfügbar.",
+      true,
+    );
+  }
+}
+
+function syncInvoiceRecipientFields() {
+  const recipientType = elements.invoiceRecipientType.value || "verursacher";
+
+  if (recipientType === "versicherung") {
+    const selectedInsurance = state.insuranceCatalogById[state.selectedInsuranceId];
+    elements.invoiceTo.value = selectedInsurance?.name || elements.insurance.value || "";
+    elements.invoiceAddress.value = [
+      selectedInsurance?.street || elements.insuranceMasterStreet.value || "",
+      [selectedInsurance?.zipCode || elements.insuranceMasterZip.value || "", selectedInsurance?.city || elements.insuranceMasterCity.value || ""].filter(Boolean).join(" "),
+      selectedInsurance?.country || elements.insuranceMasterCountry.value || "",
+    ]
+      .filter(Boolean)
+      .join(", ");
+    elements.invoiceEmail.value = selectedInsurance?.email || elements.insuranceMasterEmail.value || "";
+    elements.invoicePhone.value = selectedInsurance?.phone || elements.insuranceMasterPhone.value || "";
+    setInvoiceRecipientLocked(true);
+    return;
+  }
+
+  if (recipientType === "verursacher") {
+    elements.invoiceTo.value = elements.responsibleParty.value || "";
+    elements.invoiceAddress.value = buildResponsiblePartyAddress() || "";
+    elements.invoiceEmail.value = elements.invoiceEmail.value || "";
+    elements.invoicePhone.value = elements.invoicePhone.value || "";
+    setInvoiceRecipientLocked(true);
+    return;
+  }
+
+  elements.invoiceTo.value = elements.invoiceTo.value || "";
+  setInvoiceRecipientLocked(false);
+}
+
+function applyInvoiceRecipientSelection(recipientType) {
+  elements.invoiceRecipientType.value = recipientType;
+
+  if (recipientType === "versicherung") {
+    syncInvoiceRecipientFields();
+    return;
+  }
+
+  if (recipientType === "verursacher") {
+    elements.invoiceTo.value = elements.responsibleParty.value || "";
+    elements.invoiceAddress.value = buildResponsiblePartyAddress() || "";
+    elements.invoiceEmail.value = "";
+    elements.invoicePhone.value = "";
+    setInvoiceRecipientLocked(true);
+    return;
+  }
+
+  elements.invoiceTo.value = "";
+  elements.invoiceAddress.value = "";
+  elements.invoiceEmail.value = "";
+  elements.invoicePhone.value = "";
+  setInvoiceRecipientLocked(false);
+}
+
+function resetInsuranceSelection() {
+  state.selectedInsuranceId = "";
+  elements.insuranceCatalogSelect.value = "";
+  clearInsuranceMasterFields();
+  setInsuranceFieldsLocked(false);
+  syncInvoiceRecipientFields();
+}
+
+function applyInsuranceSelection(insuranceId) {
+  const item = state.insuranceCatalogById[insuranceId];
+  if (!item) {
+    resetInsuranceSelection();
+    return;
+  }
+
+  state.selectedInsuranceId = insuranceId;
+  elements.insurance.value = item.name || "";
+  elements.invoiceTo.value = item.contactPerson || item.name || "";
+  elements.insuranceEmail.value = item.email || "";
+
+  elements.insuranceMasterName.value = item.name || "";
+  elements.insuranceMasterContact.value = item.contactPerson || "";
+  elements.insuranceMasterPhone.value = item.phone || "";
+  elements.insuranceMasterEmail.value = item.email || "";
+  elements.insuranceMasterStreet.value = item.street || "";
+  elements.insuranceMasterZip.value = item.zipCode || "";
+  elements.insuranceMasterCity.value = item.city || "";
+  elements.insuranceMasterCountry.value = item.country || "Deutschland";
+
+  setInsuranceFieldsLocked(true);
+}
+
+function renderCatalogItems() {
+  const tbody = elements.catalogItemsList;
+  
+  if (!state.catalogItems || state.catalogItems.length === 0) {
+    elements.catalogItemsSection.style.display = 'none';
+    return;
+  }
+
+  elements.catalogItemsSection.style.display = 'block';
+  
+  let total = 0;
+  tbody.innerHTML = state.catalogItems.map(item => {
+    total += item.gesamtpreis;
+    return `
+      <tr>
+        <td>${item.bezeichnung}</td>
+        <td style="text-align: center;">${item.einheit}</td>
+        <td style="text-align: center;">${item.menge.toFixed(2)}</td>
+        <td style="text-align: right;">${item.satz.toFixed(2)} €</td>
+        <td style="text-align: right;">${item.gesamtpreis.toFixed(2)} €</td>
+        <td style="text-align: center;">
+          <button type="button" onclick="removeCatalogPosition('${item.id}')" style="padding: 4px 8px; background-color: #cc0000; color: white; border: none; border-radius: 3px; cursor: pointer;">Entfernen</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+  
+  elements.catalogTotal.textContent = total.toFixed(2).replace('.', ',') + ' €';
+  updateCostsCompleteControlState();
+}
+
+async function loadCatalogItemsForCase(caseId) {
+  if (!caseId) {
+    state.catalogItems = [];
+    renderCatalogItems();
+    return;
+  }
+
+  try {
+    const items = await apiFetch(`/api/damage-cases/${encodeURIComponent(caseId)}/catalog-items`);
+    state.catalogItems = items || [];
+    renderCatalogItems();
+  } catch (error) {
+    console.error("Katalogpositionen konnten nicht geladen werden", error);
+    state.catalogItems = [];
+    renderCatalogItems();
+  }
+}
+
+function addCatalogPosition() {
+  const catalogId = elements.catalogSelect.value;
+  const menge = parseFloat(elements.catalogMenge.value);
+
+  if (!catalogId) {
+    setMessage("Bitte wählen Sie ein Material/eine Leistung aus");
+    return;
+  }
+
+  if (!menge || menge <= 0) {
+    setMessage("Bitte geben Sie eine gültige Menge ein");
+    return;
+  }
+
+  const catalogItem = state.catalogData[catalogId];
+  if (!catalogItem) {
+    setMessage("Katalogposition nicht gefunden");
+    return;
+  }
+
+  const position = {
+    id: `temp_${Date.now()}`,
+    catalogId,
+    bezeichnung: catalogItem.bezeichnung,
+    einheit: catalogItem.einheit,
+    menge,
+    satz: catalogItem.satz,
+    gesamtpreis: catalogItem.satz * menge,
+  };
+
+  state.catalogItems.push(position);
+  renderCatalogItems();
+  
+  elements.catalogSelect.value = '';
+  elements.catalogMenge.value = '1';
+  setMessage(`Position "${catalogItem.bezeichnung}" hinzugefügt`);
+}
+
+function removeCatalogPosition(posId) {
+  state.catalogItems = state.catalogItems.filter(item => item.id !== posId);
+  renderCatalogItems();
+  setMessage("Position entfernt");
 }
 
 function updateStatusChips() {
@@ -123,26 +704,43 @@ function clearForm() {
   elements.plateNumber.value = "";
   elements.registrationOffice.value = "";
   elements.responsibleParty.value = "";
+  elements.responsiblePartyPostalCode.value = "";
+  elements.responsiblePartyCity.value = "";
+  elements.responsiblePartyStreet.value = "";
+  elements.responsiblePartyHouseNumber.value = "";
   elements.responsiblePartyAddress.value = "";
+  state.responsiblePartyAddressValid = true;
+  updateResponsiblePartyAddressSuggestions([]);
+  setResponsiblePartyAddressHint("PLZ eingeben und passende Orte und Straßen auswählen.");
   elements.insurance.value = "";
+  elements.invoiceRecipientType.value = "verursacher";
   elements.invoiceTo.value = "";
+  elements.invoiceEmail.value = "";
+  elements.invoicePhone.value = "";
+  elements.invoiceAddress.value = "";
   elements.insurancePolicyNumber.value = "";
   elements.insuranceClaimNumber.value = "";
   elements.insuranceEmail.value = "";
-  elements.cashDesk.value = "";
+  resetInsuranceSelection();
+  renderCashDeskOptions("");
   elements.otherCosts.value = "0.00";
   elements.openClaimAmount.value = "0.00";
   elements.assignedTo.value =
-    state.currentUser?.kurzel || state.currentUser?.username || "";
+    state.currentUser?.displayName || state.currentUser?.username || "";
   elements.followUpDate.value = "";
   elements.costsComplete.checked = false;
   getRequiredWorkInputs().forEach((input) => {
     input.checked = false;
   });
+  state.catalogItems = [];
+  renderCatalogItems();
+  updateCostsCompleteRequirementsInfo();
+  updateCostsCompleteControlState();
   updateActionButtons(null);
 }
 
 function collectPayload() {
+  syncResponsiblePartyAddressValue();
   return {
     status: elements.status.value,
     subject: elements.subject.value,
@@ -159,13 +757,19 @@ function collectPayload() {
     responsibleParty: elements.responsibleParty.value,
     responsiblePartyAddress: elements.responsiblePartyAddress.value,
     insurance: elements.insurance.value,
+    invoiceRecipientType: elements.invoiceRecipientType.value,
     invoiceTo: elements.invoiceTo.value,
+    invoiceEmail: elements.invoiceEmail.value,
+    invoicePhone: elements.invoicePhone.value,
+    invoiceAddress: elements.invoiceAddress.value,
     insurancePolicyNumber: elements.insurancePolicyNumber.value,
     insuranceClaimNumber: elements.insuranceClaimNumber.value,
     insuranceEmail: elements.insuranceEmail.value,
     cashDesk: elements.cashDesk.value,
     otherCosts: elements.otherCosts.value,
     openClaimAmount: elements.openClaimAmount.value,
+    catalogTotal: getCatalogCostTotal(),
+    catalogItemCount: (state.catalogItems || []).length,
     assignedTo: elements.assignedTo.value,
     followUpDate: elements.followUpDate.value,
     costsComplete: elements.costsComplete.checked,
@@ -173,6 +777,15 @@ function collectPayload() {
       .filter((input) => input.checked)
       .map((input) => input.value),
   };
+}
+
+function populateResponsiblePartyAddress(addressValue) {
+  const parts = splitResponsiblePartyAddress(addressValue);
+  elements.responsiblePartyPostalCode.value = parts.postalCode || "";
+  elements.responsiblePartyCity.value = parts.city || "";
+  elements.responsiblePartyStreet.value = parts.street || "";
+  elements.responsiblePartyHouseNumber.value = parts.houseNumber || "";
+  syncResponsiblePartyAddressValue();
 }
 
 function populateForm(damageCase) {
@@ -191,14 +804,19 @@ function populateForm(damageCase) {
   elements.plateNumber.value = damageCase.plateNumber || "";
   elements.registrationOffice.value = damageCase.registrationOffice || "";
   elements.responsibleParty.value = damageCase.responsibleParty || "";
-  elements.responsiblePartyAddress.value =
-    damageCase.responsiblePartyAddress || "";
+  populateResponsiblePartyAddress(damageCase.responsiblePartyAddress || "");
+  state.responsiblePartyAddressValid = true;
   elements.insurance.value = damageCase.insurance || "";
+  elements.invoiceRecipientType.value =
+    damageCase.invoiceRecipientType || "verursacher";
   elements.invoiceTo.value = damageCase.invoiceTo || "";
+  elements.invoiceEmail.value = damageCase.invoiceEmail || "";
+  elements.invoicePhone.value = damageCase.invoicePhone || "";
+  elements.invoiceAddress.value = damageCase.invoiceAddress || "";
   elements.insurancePolicyNumber.value = damageCase.insurancePolicyNumber || "";
   elements.insuranceClaimNumber.value = damageCase.insuranceClaimNumber || "";
   elements.insuranceEmail.value = damageCase.insuranceEmail || "";
-  elements.cashDesk.value = damageCase.cashDesk || "";
+  renderCashDeskOptions(damageCase.cashDesk || "");
   elements.otherCosts.value = Number(damageCase.otherCosts || 0).toFixed(2);
   elements.openClaimAmount.value = Number(
     damageCase.openClaimAmount || 0,
@@ -215,6 +833,10 @@ function populateForm(damageCase) {
   getRequiredWorkInputs().forEach((input) => {
     input.checked = requiredWorks.includes(input.value);
   });
+
+  syncInvoiceRecipientFields();
+  updateCostsCompleteRequirementsInfo();
+  updateCostsCompleteControlState();
 
   setFormDisabled(!damageCase.canEdit);
 }
@@ -293,6 +915,10 @@ async function loadCaseList() {
 }
 
 async function loadCase(caseId) {
+  resetInsuranceSelection();
+  state.catalogItems = [];
+  renderCatalogItems();
+
   const damageCase = await apiFetch(
     `/api/damage-cases/${encodeURIComponent(caseId)}`,
   );
@@ -302,6 +928,9 @@ async function loadCase(caseId) {
 
   state.currentCase = damageCase;
   populateForm(damageCase);
+  clearInsuranceMasterFields();
+  setInsuranceFieldsLocked(false);
+  await loadCatalogItemsForCase(caseId);
   updateStatusChips();
   renderCaseList();
   setMessage(`Fall ${damageCase.caseNumber} geladen.`);
@@ -327,7 +956,32 @@ async function startNewCase() {
 }
 
 async function saveCase() {
+  syncInvoiceRecipientFields();
   const payload = collectPayload();
+  if (payload.responsiblePartyAddress && !state.responsiblePartyAddressValid) {
+    await lookupResponsiblePartyAddress(payload.responsiblePartyAddress);
+  }
+  if (payload.responsiblePartyAddress && !state.responsiblePartyAddressValid) {
+    setMessage("Bitte wählen Sie eine gültige Anschrift des Verursachers aus dem Vorschlag aus");
+    return;
+  }
+  if (!payload.invoiceRecipientType) {
+    setMessage("Bitte wählen Sie einen Rechnungsempfänger aus");
+    return;
+  }
+
+  if (!payload.invoiceTo || !payload.invoiceAddress) {
+    setMessage("Bitte Rechnungsempfänger und Rechnungsadresse vollständig ausfüllen");
+    return;
+  }
+
+  if (
+    payload.invoiceRecipientType === "andere" &&
+    (!payload.invoiceEmail || !payload.invoicePhone)
+  ) {
+    setMessage("Bitte E-Mail und Telefon für 'Andere Stelle' vollständig ausfüllen");
+    return;
+  }
   const caseId = elements.caseId.value;
   const url = caseId
     ? `/api/damage-cases/${encodeURIComponent(caseId)}`
@@ -338,6 +992,28 @@ async function saveCase() {
     method,
     body: JSON.stringify(payload),
   });
+
+  // Save catalog items if they exist
+  if (savedCase.id && state.catalogItems && state.catalogItems.length > 0) {
+    try {
+      // Remove old items and add new ones
+      for (const item of state.catalogItems) {
+        // Only add items that don't have a database ID yet (new items)
+        if (item.id.startsWith('temp_')) {
+          await apiFetch(`/api/damage-cases/${encodeURIComponent(savedCase.id)}/catalog-items`, {
+            method: 'POST',
+            body: JSON.stringify({
+              catalogId: item.catalogId,
+              menge: item.menge,
+            }),
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Katalogpositionen konnten nicht gespeichert werden", error);
+      setMessage(`Fall gespeichert, aber Katalogpositionen konnten nicht gespeichert werden: ${error.message}`);
+    }
+  }
 
   state.currentCase = savedCase;
   populateForm(savedCase);
@@ -411,6 +1087,12 @@ async function initialisePage() {
     }
 
     elements.newCase.hidden = !canCreate;
+
+    // Load catalog data
+    await loadCatalogData();
+    await loadInsuranceCatalogData();
+    await loadCashDeskCatalogData();
+
     await startNewCase();
     await loadCaseList();
   } catch (error) {
@@ -444,6 +1126,88 @@ elements.approveCase.addEventListener("click", () =>
   withUiFeedback(approveCase),
 );
 
+elements.catalogSelect.addEventListener("change", function() {
+  if (this.value) {
+    elements.catalogMenge.focus();
+  }
+});
+
+elements.catalogMenge.addEventListener("keypress", function(e) {
+  if (e.key === "Enter") {
+    addCatalogPosition();
+  }
+});
+
+elements.catalogAddBtn.addEventListener("click", addCatalogPosition);
+
+elements.invoiceRecipientType.addEventListener("change", () => {
+  applyInvoiceRecipientSelection(elements.invoiceRecipientType.value);
+  updateCostsCompleteControlState();
+});
+
+elements.responsibleParty.addEventListener("input", () => {
+  if (elements.invoiceRecipientType.value === "verursacher") {
+    elements.invoiceTo.value = elements.responsibleParty.value || "";
+  }
+  updateCostsCompleteRequirementsInfo();
+  updateCostsCompleteControlState();
+});
+
+function triggerResponsiblePartyAddressLookup() {
+  syncResponsiblePartyAddressValue();
+  if (elements.invoiceRecipientType.value === "verursacher") {
+    elements.invoiceAddress.value = buildResponsiblePartyAddress() || "";
+  }
+
+  state.responsiblePartyAddressValid = false;
+  updateCostsCompleteRequirementsInfo();
+  window.clearTimeout(state.responsiblePartyAddressLookupTimer);
+  state.responsiblePartyAddressLookupTimer = window.setTimeout(() => {
+    lookupResponsiblePartyAddress();
+  }, 250);
+}
+
+elements.responsiblePartyPostalCode.addEventListener("input", triggerResponsiblePartyAddressLookup);
+elements.responsiblePartyCity.addEventListener("input", triggerResponsiblePartyAddressLookup);
+elements.responsiblePartyStreet.addEventListener("input", triggerResponsiblePartyAddressLookup);
+elements.responsiblePartyHouseNumber.addEventListener("input", triggerResponsiblePartyAddressLookup);
+
+elements.responsiblePartyPostalCode.addEventListener("blur", () => {
+  window.clearTimeout(state.responsiblePartyAddressLookupTimer);
+  lookupResponsiblePartyAddress();
+});
+
+elements.responsiblePartyCity.addEventListener("blur", () => {
+  window.clearTimeout(state.responsiblePartyAddressLookupTimer);
+  lookupResponsiblePartyAddress();
+});
+
+elements.responsiblePartyStreet.addEventListener("blur", () => {
+  window.clearTimeout(state.responsiblePartyAddressLookupTimer);
+  lookupResponsiblePartyAddress();
+});
+
+elements.responsiblePartyHouseNumber.addEventListener("blur", () => {
+  window.clearTimeout(state.responsiblePartyAddressLookupTimer);
+  lookupResponsiblePartyAddress();
+});
+
+elements.insuranceCatalogSelect.addEventListener("change", function () {
+  if (!this.value) {
+    resetInsuranceSelection();
+    updateCostsCompleteRequirementsInfo();
+    updateCostsCompleteControlState();
+    return;
+  }
+
+  applyInsuranceSelection(this.value);
+  if (elements.invoiceRecipientType.value === "versicherung") {
+    syncInvoiceRecipientFields();
+  }
+  updateCostsCompleteRequirementsInfo();
+  updateCostsCompleteControlState();
+});
+
 elements.plateNumber.addEventListener("blur", async () => {
   const plate = elements.plateNumber.value;
   if (!plate) return;
@@ -455,6 +1219,8 @@ elements.plateNumber.addEventListener("blur", async () => {
       elements.insurance.value = data.insurance || "";
       elements.registrationOffice.value = data.registrationOffice || "";
       elements.insuranceEmail.value = data.insuranceEmail || "";
+      updateCostsCompleteRequirementsInfo();
+      updateCostsCompleteControlState();
     }
   } catch (e) {
     console.warn("Lookup failed", e);
@@ -471,8 +1237,41 @@ elements.street.addEventListener("blur", async () => {
     if (data) {
       elements.district.value = data.district || "";
     }
+    updateCostsCompleteRequirementsInfo();
+    updateCostsCompleteControlState();
   } catch (e) {
     console.warn("Lookup failed", e);
+  }
+});
+
+elements.street.addEventListener("input", () => {
+  updateCostsCompleteRequirementsInfo();
+  updateCostsCompleteControlState();
+});
+elements.plateNumber.addEventListener("input", () => {
+  updateCostsCompleteRequirementsInfo();
+  updateCostsCompleteControlState();
+});
+elements.insurance.addEventListener("input", () => {
+  updateCostsCompleteRequirementsInfo();
+  updateCostsCompleteControlState();
+});
+elements.cashDesk.addEventListener("change", () => {
+  updateCostsCompleteRequirementsInfo();
+  updateCostsCompleteControlState();
+});
+elements.otherCosts.addEventListener("input", () => {
+  updateCostsCompleteRequirementsInfo();
+  updateCostsCompleteControlState();
+});
+elements.openClaimAmount.addEventListener("input", () => {
+  updateCostsCompleteRequirementsInfo();
+  updateCostsCompleteControlState();
+});
+elements.costsComplete.addEventListener("change", () => {
+  if (elements.costsComplete.checked && !hasValidCostsCompletePrerequisites()) {
+    elements.costsComplete.checked = false;
+    setMessage("Kosten komplett erfasst kann erst gesetzt werden, wenn alle Voraussetzungen erfüllt sind.");
   }
 });
 

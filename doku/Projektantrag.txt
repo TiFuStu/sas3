@@ -1,0 +1,10 @@
+- dokumente generieren
+- MockUp für SaS3
+
+- Nur Berechnung von Rechnungen
+- generieren von Dokumenten im odt.Format
+- Oberfläche für SMen von Dateneingabe
+- MS-SQL Datenbankserver
+- css Corporate Design
+- Strassenabschnitte aus BestandUI
+- EntwicklerDoku, AnwenderDoku

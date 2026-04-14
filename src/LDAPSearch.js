@@ -81,10 +81,11 @@ class LDAPSearch {
             ]);
 
             const chunks = [];
+            const errorChunks = [];
 
             childProcess.stdin.end();
             childProcess.stderr.on("data", (buf) => {
-              // suppress stderr, or log optionally
+              errorChunks.push(buf);
             });
             childProcess.stdout.on("data", (chunk) => chunks.push(chunk));
 
@@ -95,7 +96,14 @@ class LDAPSearch {
               if (code === 32) {
                 resolve([]);
               } else if (code !== 0) {
-                return reject(`ldapsearch returned statuscode ${code}`);
+                const stderrOutput = Buffer.concat(errorChunks)
+                  .toString("utf8")
+                  .trim();
+                return reject(
+                  `ldapsearch returned statuscode ${code}${
+                    stderrOutput ? `: ${stderrOutput}` : ""
+                  }`,
+                );
               }
 
               const ldif = Buffer.concat(chunks).toString("utf8");
