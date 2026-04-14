@@ -49,14 +49,18 @@ const STREET_DATA = {
 };
 
 function normalizeLookupQuery(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function buildAddressLabel(address) {
   const parts = [];
 
   if (address.street) {
-    const streetParts = [address.street, address.houseNumber].filter(Boolean).join(" ");
+    const streetParts = [address.street, address.houseNumber]
+      .filter(Boolean)
+      .join(" ");
     if (streetParts) {
       parts.push(streetParts);
     }
@@ -76,16 +80,39 @@ function buildAddressLabel(address) {
 
 function mapNominatimAddress(item) {
   const address = item?.address || {};
-  const street = address.road || address.pedestrian || address.cycleway || address.path || "";
+  const street =
+    address.road ||
+    address.pedestrian ||
+    address.cycleway ||
+    address.path ||
+    "";
   const houseNumber = address.house_number || "";
   const zipCode = address.postcode || "";
-  const city = address.city || address.town || address.village || address.municipality || address.hamlet || address.suburb || "";
-  const district = address.city_district || address.county || address.state_district || address.state || "";
+  const city =
+    address.city ||
+    address.town ||
+    address.village ||
+    address.municipality ||
+    address.hamlet ||
+    address.suburb ||
+    "";
+  const district =
+    address.city_district ||
+    address.county ||
+    address.state_district ||
+    address.state ||
+    "";
   const country = address.country || "";
   const streetLine = [street, houseNumber].filter(Boolean).join(" ");
 
   return {
-    address: buildAddressLabel({ street: streetLine || street, houseNumber: "", zipCode, city, country }),
+    address: buildAddressLabel({
+      street: streetLine || street,
+      houseNumber: "",
+      zipCode,
+      city,
+      country,
+    }),
     street: streetLine || street,
     streetName: street,
     houseNumber,
@@ -140,7 +167,9 @@ async function fetchAddressSuggestionsFromInternet(query) {
     return [];
   }
 
-  const searchQuery = /^\d{4,5}$/.test(normalized) ? `${query} Deutschland` : query;
+  const searchQuery = /^\d{4,5}$/.test(normalized)
+    ? `${query} Deutschland`
+    : query;
 
   const url = new URL("https://nominatim.openstreetmap.org/search");
   url.searchParams.set("q", searchQuery);
@@ -170,7 +199,10 @@ async function fetchAddressSuggestionsFromInternet(query) {
       return [];
     }
 
-    return data.map(mapNominatimAddress).filter((item) => item.address).slice(0, 10);
+    return data
+      .map(mapNominatimAddress)
+      .filter((item) => item.address)
+      .slice(0, 10);
   } catch (error) {
     if (isTransientAddressLookupError(error)) {
       logAddressLookupWarning("Adress-Lookup derzeit nicht erreichbar", error);
@@ -185,7 +217,9 @@ async function fetchAddressSuggestionsFromInternet(query) {
 
 const configPath = path.join(__dirname, "/config/config.json");
 const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-const dummyUsers = new Map((config.testUsers || []).map((user) => [user.username.toLowerCase(), user]));
+const dummyUsers = new Map(
+  (config.testUsers || []).map((user) => [user.username.toLowerCase(), user]),
+);
 
 const app = express();
 
@@ -323,10 +357,12 @@ function saveConfig() {
 }
 
 function getRoleOptions() {
-  return Object.entries(config.rights?.roles || {}).map(([name, definition]) => ({
-    name,
-    label: definition?.label || name,
-  }));
+  return Object.entries(config.rights?.roles || {}).map(
+    ([name, definition]) => ({
+      name,
+      label: definition?.label || name,
+    }),
+  );
 }
 
 function toArray(value) {
@@ -347,9 +383,7 @@ function normalizeLoginUsername(value) {
     return "";
   }
 
-  const withoutDomainPrefix = raw.includes("\\")
-    ? raw.split("\\").pop()
-    : raw;
+  const withoutDomainPrefix = raw.includes("\\") ? raw.split("\\").pop() : raw;
   const withoutUpnSuffix = withoutDomainPrefix.includes("@")
     ? withoutDomainPrefix.split("@")[0]
     : withoutDomainPrefix;
@@ -434,7 +468,10 @@ async function authenticate(username, password) {
       normalizedUsername,
       normalizedPassword,
     );
-    const filter = config.ldap.userFilter.replace("{{username}}", normalizedUsername);
+    const filter = config.ldap.userFilter.replace(
+      "{{username}}",
+      normalizedUsername,
+    );
     const authResults = await credentialCheck.search(filter, "dn");
     if (!authResults || authResults.length === 0) {
       return { ok: false, reason: "invalidCredentials" };
@@ -532,7 +569,8 @@ function sanitizeDamageCaseInput(body) {
     insuranceClaimNumber: normalizeString(body.insuranceClaimNumber),
     insuranceEmail: normalizeString(body.insuranceEmail),
     invoiceTo: normalizeString(body.invoiceTo),
-    invoiceRecipientType: normalizeString(body.invoiceRecipientType) || "verursacher",
+    invoiceRecipientType:
+      normalizeString(body.invoiceRecipientType) || "verursacher",
     invoiceAddress: normalizeString(body.invoiceAddress),
     invoicePhone: normalizeString(body.invoicePhone),
     invoiceEmail: normalizeString(body.invoiceEmail),
@@ -550,7 +588,9 @@ function sanitizeDamageCaseInput(body) {
 
 function hasLockedCostFieldChanges(existingDamageCase, payload) {
   const currentRequiredWorks = Array.isArray(existingDamageCase.requiredWorks)
-    ? existingDamageCase.requiredWorks.map((item) => normalizeString(item)).filter(Boolean)
+    ? existingDamageCase.requiredWorks
+        .map((item) => normalizeString(item))
+        .filter(Boolean)
     : [];
   const nextRequiredWorks = Array.isArray(payload.requiredWorks)
     ? payload.requiredWorks.map((item) => normalizeString(item)).filter(Boolean)
@@ -558,18 +598,26 @@ function hasLockedCostFieldChanges(existingDamageCase, payload) {
 
   const requiredWorksChanged =
     currentRequiredWorks.length !== nextRequiredWorks.length ||
-    currentRequiredWorks.some((item, index) => item !== nextRequiredWorks[index]);
+    currentRequiredWorks.some(
+      (item, index) => item !== nextRequiredWorks[index],
+    );
 
   return (
-    Number(existingDamageCase.otherCosts || 0) !== Number(payload.otherCosts || 0) ||
-    Number(existingDamageCase.openClaimAmount || 0) !== Number(payload.openClaimAmount || 0) ||
+    Number(existingDamageCase.otherCosts || 0) !==
+      Number(payload.otherCosts || 0) ||
+    Number(existingDamageCase.openClaimAmount || 0) !==
+      Number(payload.openClaimAmount || 0) ||
     requiredWorksChanged
   );
 }
 
 function hasValidCostsCompletePrerequisites(damageCase) {
-  const hasResponsibleParty = Boolean(String(damageCase.responsibleParty || "").trim());
-  const hasValidResponsiblePartyAddress = Boolean(String(damageCase.responsiblePartyAddress || "").trim());
+  const hasResponsibleParty = Boolean(
+    String(damageCase.responsibleParty || "").trim(),
+  );
+  const hasValidResponsiblePartyAddress = Boolean(
+    String(damageCase.responsiblePartyAddress || "").trim(),
+  );
   const hasInsurance = Boolean(String(damageCase.insurance || "").trim());
   const hasCashDesk = Boolean(String(damageCase.cashDesk || "").trim());
   const hasAccidentLocation = Boolean(String(damageCase.street || "").trim());
@@ -771,7 +819,11 @@ app.get("/api/lookup/street", requireLogin, async (req, res) => {
     console.error("Straßen-Lookup fehlgeschlagen", error);
     const fallback = STREET_DATA[street];
     if (fallback) {
-      res.json({ district: fallback.district || "", sections: fallback.sections || [], suggestions: [] });
+      res.json({
+        district: fallback.district || "",
+        sections: fallback.sections || [],
+        suggestions: [],
+      });
       return;
     }
 
@@ -798,11 +850,14 @@ app.get("/api/lookup/address", requireLogin, (req, res) => {
 
   fetchAddressSuggestionsFromInternet(query)
     .then((matches) => {
-      const normalizedQuery = normalizeLookupQuery(query).replace(/\s+/g, " ").replace(/,/g, "");
+      const normalizedQuery = normalizeLookupQuery(query)
+        .replace(/\s+/g, " ")
+        .replace(/,/g, "");
 
       const exactMatch =
-        matches.find((item) => normalizeAddressForCompare(item) === normalizedQuery) ||
-        null;
+        matches.find(
+          (item) => normalizeAddressForCompare(item) === normalizedQuery,
+        ) || null;
 
       res.json({ matches, exactMatch });
     })
@@ -909,9 +964,7 @@ app.get(
       });
     } catch (error) {
       console.error("Gruppenmappings konnten nicht geladen werden", error);
-      res
-        .status(500)
-        .json({ error: "Fehler beim Laden der Gruppenmappings" });
+      res.status(500).json({ error: "Fehler beim Laden der Gruppenmappings" });
     }
   },
 );
@@ -1081,7 +1134,11 @@ app.post(
       if (payload.cashDesk) {
         const isValidCashDesk = await db.hasActiveCashDesk(payload.cashDesk);
         if (!isValidCashDesk) {
-          res.status(400).json({ error: "Bitte eine gueltige Kasse aus dem Katalog waehlen" });
+          res
+            .status(400)
+            .json({
+              error: "Bitte eine gueltige Kasse aus dem Katalog waehlen",
+            });
           return;
         }
       }
@@ -1119,7 +1176,10 @@ app.put(
       const wantsApprove = normalizeBoolean(req.body.approve);
       const costsLocked = existingDamageCase.costsComplete === true;
 
-      if (costsLocked && hasLockedCostFieldChanges(existingDamageCase, payload)) {
+      if (
+        costsLocked &&
+        hasLockedCostFieldChanges(existingDamageCase, payload)
+      ) {
         res.status(400).json({
           error:
             "Kosten koennen nach 'Kosten komplett erfasst' nicht mehr bearbeitet werden",
@@ -1128,9 +1188,13 @@ app.put(
       }
 
       // Workflow logic
-      const wantsToMarkCostsComplete = payload.costsComplete && !existingDamageCase.costsComplete;
+      const wantsToMarkCostsComplete =
+        payload.costsComplete && !existingDamageCase.costsComplete;
 
-      if (wantsToMarkCostsComplete && !hasValidCostsCompletePrerequisites(payload)) {
+      if (
+        wantsToMarkCostsComplete &&
+        !hasValidCostsCompletePrerequisites(payload)
+      ) {
         res.status(400).json({
           error:
             "Kosten komplett erfasst kann erst gesetzt werden, wenn Verursacher, Versicherung, Kasse, Unfallort, Kennzeichen und Kosten vorhanden sind",
@@ -1166,7 +1230,11 @@ app.put(
       if (payload.cashDesk) {
         const isValidCashDesk = await db.hasActiveCashDesk(payload.cashDesk);
         if (!isValidCashDesk) {
-          res.status(400).json({ error: "Bitte eine gueltige Kasse aus dem Katalog waehlen" });
+          res
+            .status(400)
+            .json({
+              error: "Bitte eine gueltige Kasse aus dem Katalog waehlen",
+            });
           return;
         }
       }
@@ -1186,19 +1254,15 @@ app.put(
 );
 
 // Catalog Endpoints
-app.get(
-  "/api/catalog",
-  requireLogin,
-  async (_req, res) => {
-    try {
-      const items = await db.listCatalogItems(true);
-      res.json(items);
-    } catch (error) {
-      console.error("Katalog konnte nicht geladen werden", error);
-      res.status(500).json({ error: "Fehler beim Laden des Katalogs" });
-    }
-  },
-);
+app.get("/api/catalog", requireLogin, async (_req, res) => {
+  try {
+    const items = await db.listCatalogItems(true);
+    res.json(items);
+  } catch (error) {
+    console.error("Katalog konnte nicht geladen werden", error);
+    res.status(500).json({ error: "Fehler beim Laden des Katalogs" });
+  }
+});
 
 app.get(
   "/api/admin/catalog",
@@ -1215,34 +1279,27 @@ app.get(
   },
 );
 
+app.get("/api/insurance-catalog", requireLogin, async (_req, res) => {
+  try {
+    const items = await db.listInsuranceCatalogEntries(true);
+    res.json(items);
+  } catch (error) {
+    console.error("Versicherungs-Katalog konnte nicht geladen werden", error);
+    res
+      .status(500)
+      .json({ error: "Fehler beim Laden des Versicherungs-Katalogs" });
+  }
+});
 
-app.get(
-  "/api/insurance-catalog",
-  requireLogin,
-  async (_req, res) => {
-    try {
-      const items = await db.listInsuranceCatalogEntries(true);
-      res.json(items);
-    } catch (error) {
-      console.error("Versicherungs-Katalog konnte nicht geladen werden", error);
-      res.status(500).json({ error: "Fehler beim Laden des Versicherungs-Katalogs" });
-    }
-  },
-);
-
-app.get(
-  "/api/cash-desks",
-  requireLogin,
-  async (_req, res) => {
-    try {
-      const items = await db.listCashDeskEntries(true);
-      res.json(items);
-    } catch (error) {
-      console.error("Kassen-Katalog konnte nicht geladen werden", error);
-      res.status(500).json({ error: "Fehler beim Laden des Kassen-Katalogs" });
-    }
-  },
-);
+app.get("/api/cash-desks", requireLogin, async (_req, res) => {
+  try {
+    const items = await db.listCashDeskEntries(true);
+    res.json(items);
+  } catch (error) {
+    console.error("Kassen-Katalog konnte nicht geladen werden", error);
+    res.status(500).json({ error: "Fehler beim Laden des Kassen-Katalogs" });
+  }
+});
 
 app.get(
   "/api/admin/insurance-catalog",
@@ -1254,7 +1311,9 @@ app.get(
       res.json(items);
     } catch (error) {
       console.error("Versicherungs-Katalog konnte nicht geladen werden", error);
-      res.status(500).json({ error: "Fehler beim Laden des Versicherungs-Katalogs" });
+      res
+        .status(500)
+        .json({ error: "Fehler beim Laden des Versicherungs-Katalogs" });
     }
   },
 );
@@ -1301,8 +1360,13 @@ app.post(
       const newItem = await db.createInsuranceCatalogEntry(item);
       res.status(201).json(newItem);
     } catch (error) {
-      console.error("Versicherungs-Eintrag konnte nicht erstellt werden", error);
-      res.status(500).json({ error: "Fehler beim Erstellen des Versicherungs-Eintrags" });
+      console.error(
+        "Versicherungs-Eintrag konnte nicht erstellt werden",
+        error,
+      );
+      res
+        .status(500)
+        .json({ error: "Fehler beim Erstellen des Versicherungs-Eintrags" });
     }
   },
 );
@@ -1331,11 +1395,21 @@ app.put(
         return;
       }
 
-      const updatedItem = await db.updateInsuranceCatalogEntry(req.params.id, item);
+      const updatedItem = await db.updateInsuranceCatalogEntry(
+        req.params.id,
+        item,
+      );
       res.json(updatedItem);
     } catch (error) {
-      console.error("Versicherungs-Eintrag konnte nicht aktualisiert werden", error);
-      res.status(500).json({ error: "Fehler beim Aktualisieren des Versicherungs-Eintrags" });
+      console.error(
+        "Versicherungs-Eintrag konnte nicht aktualisiert werden",
+        error,
+      );
+      res
+        .status(500)
+        .json({
+          error: "Fehler beim Aktualisieren des Versicherungs-Eintrags",
+        });
     }
   },
 );
@@ -1349,8 +1423,13 @@ app.delete(
       await db.deleteInsuranceCatalogEntry(req.params.id);
       res.json({ ok: true });
     } catch (error) {
-      console.error("Versicherungs-Eintrag konnte nicht gelöscht werden", error);
-      res.status(500).json({ error: "Fehler beim Löschen des Versicherungs-Eintrags" });
+      console.error(
+        "Versicherungs-Eintrag konnte nicht gelöscht werden",
+        error,
+      );
+      res
+        .status(500)
+        .json({ error: "Fehler beim Löschen des Versicherungs-Eintrags" });
     }
   },
 );
@@ -1375,7 +1454,9 @@ app.post(
       res.status(201).json(newItem);
     } catch (error) {
       console.error("Kassen-Eintrag konnte nicht erstellt werden", error);
-      res.status(500).json({ error: "Fehler beim Erstellen des Kassen-Eintrags" });
+      res
+        .status(500)
+        .json({ error: "Fehler beim Erstellen des Kassen-Eintrags" });
     }
   },
 );
@@ -1400,7 +1481,9 @@ app.put(
       res.json(updatedItem);
     } catch (error) {
       console.error("Kassen-Eintrag konnte nicht aktualisiert werden", error);
-      res.status(500).json({ error: "Fehler beim Aktualisieren des Kassen-Eintrags" });
+      res
+        .status(500)
+        .json({ error: "Fehler beim Aktualisieren des Kassen-Eintrags" });
     }
   },
 );
@@ -1415,7 +1498,9 @@ app.delete(
       res.json({ ok: true });
     } catch (error) {
       console.error("Kassen-Eintrag konnte nicht gelöscht werden", error);
-      res.status(500).json({ error: "Fehler beim Löschen des Kassen-Eintrags" });
+      res
+        .status(500)
+        .json({ error: "Fehler beim Löschen des Kassen-Eintrags" });
     }
   },
 );
@@ -1473,7 +1558,9 @@ app.put(
       res.json(updatedItem);
     } catch (error) {
       console.error("Katalogitem konnte nicht aktualisiert werden", error);
-      res.status(500).json({ error: "Fehler beim Aktualisieren des Katalogitems" });
+      res
+        .status(500)
+        .json({ error: "Fehler beim Aktualisieren des Katalogitems" });
     }
   },
 );
@@ -1505,7 +1592,9 @@ app.get(
       }
 
       if (!rights.canViewCase(req.session.user, damageCase)) {
-        res.status(403).json({ error: "Keine Berechtigung für diesen Schadensfall" });
+        res
+          .status(403)
+          .json({ error: "Keine Berechtigung für diesen Schadensfall" });
         return;
       }
 
@@ -1513,7 +1602,9 @@ app.get(
       res.json(items);
     } catch (error) {
       console.error("Katalogpositionen konnten nicht geladen werden", error);
-      res.status(500).json({ error: "Fehler beim Laden der Katalogpositionen" });
+      res
+        .status(500)
+        .json({ error: "Fehler beim Laden der Katalogpositionen" });
     }
   },
 );
@@ -1530,14 +1621,18 @@ app.post(
       }
 
       if (!rights.canEditCase(req.session.user, damageCase)) {
-        res.status(403).json({ error: "Keine Bearbeitungsrechte für diesen Schadensfall" });
+        res
+          .status(403)
+          .json({ error: "Keine Bearbeitungsrechte für diesen Schadensfall" });
         return;
       }
 
       if (damageCase.costsComplete) {
         res
           .status(400)
-          .json({ error: "Kostenpositionen koennen nicht mehr bearbeitet werden" });
+          .json({
+            error: "Kostenpositionen koennen nicht mehr bearbeitet werden",
+          });
         return;
       }
 
@@ -1549,11 +1644,17 @@ app.post(
         return;
       }
 
-      const position = await db.addCatalogItemToCase(req.params.id, catalogId, menge);
+      const position = await db.addCatalogItemToCase(
+        req.params.id,
+        catalogId,
+        menge,
+      );
       res.status(201).json(position);
     } catch (error) {
       console.error("Katalogposition konnte nicht hinzugefügt werden", error);
-      res.status(500).json({ error: "Fehler beim Hinzufügen der Katalogposition" });
+      res
+        .status(500)
+        .json({ error: "Fehler beim Hinzufügen der Katalogposition" });
     }
   },
 );
@@ -1570,14 +1671,18 @@ app.delete(
       }
 
       if (!rights.canEditCase(req.session.user, damageCase)) {
-        res.status(403).json({ error: "Keine Bearbeitungsrechte für diesen Schadensfall" });
+        res
+          .status(403)
+          .json({ error: "Keine Bearbeitungsrechte für diesen Schadensfall" });
         return;
       }
 
       if (damageCase.costsComplete) {
         res
           .status(400)
-          .json({ error: "Kostenpositionen koennen nicht mehr bearbeitet werden" });
+          .json({
+            error: "Kostenpositionen koennen nicht mehr bearbeitet werden",
+          });
         return;
       }
 
@@ -1585,7 +1690,9 @@ app.delete(
       res.json({ ok: true });
     } catch (error) {
       console.error("Katalogposition konnte nicht entfernt werden", error);
-      res.status(500).json({ error: "Fehler beim Entfernen der Katalogposition" });
+      res
+        .status(500)
+        .json({ error: "Fehler beim Entfernen der Katalogposition" });
     }
   },
 );
@@ -1636,7 +1743,12 @@ app.put(
         return;
       }
 
-      if (!newConfig.host || !newConfig.database || !newConfig.user || newConfig.password === undefined) {
+      if (
+        !newConfig.host ||
+        !newConfig.database ||
+        !newConfig.user ||
+        newConfig.password === undefined
+      ) {
         res.status(400).json({ error: "Alle Felder sind erforderlich" });
         return;
       }
@@ -1661,7 +1773,9 @@ app.put(
       });
     } catch (error) {
       console.error("Fehler beim Speichern der DB-Konfiguration", error);
-      res.status(500).json({ error: "Fehler beim Speichern der Konfiguration" });
+      res
+        .status(500)
+        .json({ error: "Fehler beim Speichern der Konfiguration" });
     }
   },
 );
@@ -1675,7 +1789,12 @@ app.post(
       const testConfig = req.body?.config || {};
       const scope = String(req.body?.scope || "main");
 
-      if (!testConfig.host || !testConfig.database || !testConfig.user || testConfig.password === undefined) {
+      if (
+        !testConfig.host ||
+        !testConfig.database ||
+        !testConfig.user ||
+        testConfig.password === undefined
+      ) {
         res.status(400).json({ error: "Alle Felder sind erforderlich" });
         return;
       }

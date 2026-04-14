@@ -29,9 +29,7 @@ function loadConfig() {
 function getPoolConfig(scope = getActiveScope()) {
   const config = loadConfig();
   const dbConfig =
-    scope === "dummy"
-      ? config.dummyDb || null
-      : config.db || null;
+    scope === "dummy" ? config.dummyDb || null : config.db || null;
 
   if (!dbConfig || !dbConfig.database) {
     throw new Error(
@@ -615,7 +613,7 @@ async function updateDamageCase(damageCaseId, damageCase) {
 async function createCatalogItem(item) {
   const pool = await getPool();
   const catalogId = `KAT_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
+
   await pool.query(
     `
       INSERT INTO "SYSKATALOG" (
@@ -631,7 +629,7 @@ async function createCatalogItem(item) {
       item.einheit || "Stück",
       parseFloat(item.satz || 0),
       item.erstellt_von || "system",
-    ]
+    ],
   );
 
   return getCatalogItemById(catalogId);
@@ -641,7 +639,7 @@ async function getCatalogItemById(catalogId) {
   const pool = await getPool();
   const result = await pool.query(
     'SELECT * FROM "SYSKATALOG" WHERE "KATID" = $1 LIMIT 1',
-    [catalogId]
+    [catalogId],
   );
   const record = result.rows[0];
   return record ? mapCatalogItem(record) : null;
@@ -701,7 +699,7 @@ async function updateCatalogItem(catalogId, item) {
       parseFloat(item.satz || 0),
       item.aktiv !== false,
       catalogId,
-    ]
+    ],
   );
 
   return getCatalogItemById(catalogId);
@@ -709,17 +707,17 @@ async function updateCatalogItem(catalogId, item) {
 
 async function deleteCatalogItem(catalogId) {
   const pool = await getPool();
-  
+
   await pool.query(
     'UPDATE "SYSKATALOG" SET "KATAKTIV" = false WHERE "KATID" = $1',
-    [catalogId]
+    [catalogId],
   );
 }
 
 async function addCatalogItemToCase(caseId, catalogId, menge) {
   const pool = await getPool();
   const posId = `KATPOS_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
+
   // Get catalog item to calculate total price
   const catalogItem = await getCatalogItemById(catalogId);
   if (!catalogItem) {
@@ -735,7 +733,7 @@ async function addCatalogItemToCase(caseId, catalogId, menge) {
       )
       VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
     `,
-    [posId, caseId, catalogId, parseFloat(menge), gesamtpreis]
+    [posId, caseId, catalogId, parseFloat(menge), gesamtpreis],
   );
 
   return getCatalogPositionById(posId);
@@ -751,21 +749,23 @@ async function getCatalogPositionById(posId) {
       WHERE kp."KATPOSID" = $1 AND kp."KATPOSGELOESCHTAM" IS NULL
       LIMIT 1
     `,
-    [posId]
+    [posId],
   );
-  
+
   const record = result.rows[0];
-  return record ? {
-    id: record.KATPOSID,
-    caseId: record.SFAID,
-    catalogId: record.KATID,
-    bezeichnung: record.KATBEZEICHNUNG || "",
-    einheit: record.KATEINHEIT || "Stück",
-    menge: Number(record.KATPOSMENGE || 0),
-    satz: Number(record.KATSATZ || 0),
-    gesamtpreis: Number(record.KATPOSGESAMTPREIS || 0),
-    hinzugefuegtAm: record.KATPOSHINZUGEFUEGTAM,
-  } : null;
+  return record
+    ? {
+        id: record.KATPOSID,
+        caseId: record.SFAID,
+        catalogId: record.KATID,
+        bezeichnung: record.KATBEZEICHNUNG || "",
+        einheit: record.KATEINHEIT || "Stück",
+        menge: Number(record.KATPOSMENGE || 0),
+        satz: Number(record.KATSATZ || 0),
+        gesamtpreis: Number(record.KATPOSGESAMTPREIS || 0),
+        hinzugefuegtAm: record.KATPOSHINZUGEFUEGTAM,
+      }
+    : null;
 }
 
 async function getCatalogItemsForCase(caseId) {
@@ -778,10 +778,10 @@ async function getCatalogItemsForCase(caseId) {
       WHERE kp."SFAID" = $1 AND kp."KATPOSGELOESCHTAM" IS NULL
       ORDER BY kp."KATPOSHINZUGEFUEGTAM"
     `,
-    [caseId]
+    [caseId],
   );
 
-  return result.rows.map(record => ({
+  return result.rows.map((record) => ({
     id: record.KATPOSID,
     caseId: record.SFAID,
     catalogId: record.KATID,
@@ -796,10 +796,10 @@ async function getCatalogItemsForCase(caseId) {
 
 async function removeCatalogItemFromCase(posId) {
   const pool = await getPool();
-  
+
   await pool.query(
     'UPDATE "SFOKATALOGPOSITIONEN" SET "KATPOSGELOESCHTAM" = CURRENT_TIMESTAMP WHERE "KATPOSID" = $1',
-    [posId]
+    [posId],
   );
 }
 
@@ -1034,10 +1034,7 @@ function resetPoolsForScope(scope) {
 
 function getDbConfig(scope = getActiveScope()) {
   const config = loadConfig();
-  const dbConfig =
-    scope === "dummy"
-      ? config.dummyDb || {}
-      : config.db || {};
+  const dbConfig = scope === "dummy" ? config.dummyDb || {} : config.db || {};
   return dbConfig;
 }
 
