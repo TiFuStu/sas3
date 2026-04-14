@@ -127,18 +127,6 @@
         "roles": [
           "admin"
         ]
-      },
-      {
-        "groupName": "Azubi IT",
-        "roles": [
-          "bearbeiter"
-        ]
-      },
-      {
-        "groupName": "FT3-Dokumenten- und Wissensmanagement",
-        "roles": [
-          "erfasser"
-        ]
       }
     ]
   }
