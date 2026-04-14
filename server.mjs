@@ -1134,11 +1134,9 @@ app.post(
       if (payload.cashDesk) {
         const isValidCashDesk = await db.hasActiveCashDesk(payload.cashDesk);
         if (!isValidCashDesk) {
-          res
-            .status(400)
-            .json({
-              error: "Bitte eine gueltige Kasse aus dem Katalog waehlen",
-            });
+          res.status(400).json({
+            error: "Bitte eine gueltige Kasse aus dem Katalog waehlen",
+          });
           return;
         }
       }
@@ -1230,11 +1228,9 @@ app.put(
       if (payload.cashDesk) {
         const isValidCashDesk = await db.hasActiveCashDesk(payload.cashDesk);
         if (!isValidCashDesk) {
-          res
-            .status(400)
-            .json({
-              error: "Bitte eine gueltige Kasse aus dem Katalog waehlen",
-            });
+          res.status(400).json({
+            error: "Bitte eine gueltige Kasse aus dem Katalog waehlen",
+          });
           return;
         }
       }
@@ -1405,11 +1401,9 @@ app.put(
         "Versicherungs-Eintrag konnte nicht aktualisiert werden",
         error,
       );
-      res
-        .status(500)
-        .json({
-          error: "Fehler beim Aktualisieren des Versicherungs-Eintrags",
-        });
+      res.status(500).json({
+        error: "Fehler beim Aktualisieren des Versicherungs-Eintrags",
+      });
     }
   },
 );
@@ -1628,11 +1622,9 @@ app.post(
       }
 
       if (damageCase.costsComplete) {
-        res
-          .status(400)
-          .json({
-            error: "Kostenpositionen koennen nicht mehr bearbeitet werden",
-          });
+        res.status(400).json({
+          error: "Kostenpositionen koennen nicht mehr bearbeitet werden",
+        });
         return;
       }
 
@@ -1678,11 +1670,9 @@ app.delete(
       }
 
       if (damageCase.costsComplete) {
-        res
-          .status(400)
-          .json({
-            error: "Kostenpositionen koennen nicht mehr bearbeitet werden",
-          });
+        res.status(400).json({
+          error: "Kostenpositionen koennen nicht mehr bearbeitet werden",
+        });
         return;
       }
 
