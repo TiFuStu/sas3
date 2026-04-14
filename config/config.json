@@ -127,6 +127,12 @@
         "roles": [
           "admin"
         ]
+      },
+      {
+        "groupName": "FT3 DL5 HG",
+        "roles": [
+          "admin"
+        ]
       }
     ]
   }
