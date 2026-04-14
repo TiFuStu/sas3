@@ -651,8 +651,10 @@ function renderCatalogItems() {
   // Katalog wird jetzt auf der separaten Kostenberechnung-Seite verwaltet
   // Diese Funktion ist rückwärtskompatibel, aber wird nicht mehr verwendet
   const catalogItemsListElement = document.getElementById("catalog-items-list");
-  const catalogItemsSectionElement = document.getElementById("catalog-items-section");
-  
+  const catalogItemsSectionElement = document.getElementById(
+    "catalog-items-section",
+  );
+
   if (!catalogItemsListElement || !catalogItemsSectionElement) {
     return; // Elemente existieren nicht (neue Seite)
   }
@@ -770,10 +772,12 @@ function updateCostsSummary() {
   const costsSummarySection = document.getElementById("costs-summary-section");
 
   if (sumDisplayCatalog) {
-    sumDisplayCatalog.textContent = catalogTotal.toFixed(2).replace(".", ",") + " €";
+    sumDisplayCatalog.textContent =
+      catalogTotal.toFixed(2).replace(".", ",") + " €";
   }
   if (sumDisplayOther) {
-    sumDisplayOther.textContent = otherCosts.toFixed(2).replace(".", ",") + " €";
+    sumDisplayOther.textContent =
+      otherCosts.toFixed(2).replace(".", ",") + " €";
   }
   if (sumDisplayTotalInput) {
     sumDisplayTotalInput.value = totalCosts.toFixed(2).replace(".", ",") + " €";
@@ -880,7 +884,9 @@ function collectPayload() {
   const selectedRequiredWorks = getRequiredWorkInputs()
     .filter((input) => input.checked)
     .map((input) => input.value);
-  const customRequiredWork = String(elements.requiredWorkCustom?.value || "").trim();
+  const customRequiredWork = String(
+    elements.requiredWorkCustom?.value || "",
+  ).trim();
 
   if (customRequiredWork) {
     selectedRequiredWorks.push(customRequiredWork);
