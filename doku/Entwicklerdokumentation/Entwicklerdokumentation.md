@@ -2,7 +2,7 @@
 
 ## Stand der Dokumentation
 
-- Letzte inhaltliche Aktualisierung: 2026-04-14
+- Letzte inhaltliche Aktualisierung: 2026-04-16
 - Quelle: aktueller Code-Stand im Repository
 - Ergänzendes Fachbegriff-Glossar aus der Projektdokumentation: `doku/Glossar.md`
 
@@ -537,7 +537,28 @@ SaS3 ist als klare 3-Schichten-Struktur umgesetzt:
 
 Die wichtigsten Erweiterungspunkte sind bereits zentralisiert. Dadurch lassen sich neue Fachregeln, Felder und Rollen ohne verteilte Sonderlogik implementieren.
 
-## 15. Offene Punkte (bewusst nicht umgesetzt)
+## 15. Testdurchführung (White-Box, C1)
+
+Die Testdurchführung wurde ausschließlich als White-Box-Test durchgeführt.
+
+Testansatz:
+
+- Strukturelle Tests auf Basis der Implementierung
+- Überdeckungskriterium C1 (Entscheidungs-/Zweigüberdeckung)
+- Jede `if`-Abfrage wurde mindestens einmal durchlaufen
+- Fokus auf kritische Verzweigungen in Backend, Rechteprüfung und Frontend-Validierung
+
+Nicht Bestandteil dieser Testphase:
+
+- Black-Box-Tests
+- Last-/Performancetests
+- Explorative UI-Tests ohne definierten Verzweigungsbezug
+
+Die detaillierten Nachweise sind in den Prüfprotokollen dokumentiert:
+
+- `doku/Pruefprotokolle/WhiteBox-C1-Pruefprotokolle.md`
+
+## 16. Offene Punkte (bewusst nicht umgesetzt)
 
 Die folgenden Themen sind im aktuellen Stand als nächste Ausbaustufe vorgesehen:
 
