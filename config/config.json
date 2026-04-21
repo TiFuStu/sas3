@@ -124,16 +124,27 @@
     },
     "groupMappings": [
       {
-        "groupName": "Azubi IT",
+        "groupName": "FT3-Verwaltungsverfahren und Microservices - Admin",
         "roles": [
           "admin"
         ]
       },
       {
-        "groupName": "FT3 DL5 HG",
+        "groupName": "FT3-Geo-Informationssysteme",
         "roles": [
-          "admin",
+          "bearbeiter"
+        ]
+      },
+      {
+        "groupName": "FT3-Dokumenten- und Wissensmanagement",
+        "roles": [
           "erfasser"
+        ]
+      },
+      {
+        "groupName": "FT3-Verwaltungsverfahren und Microservices",
+        "roles": [
+          "leitung"
         ]
       }
     ]
