@@ -420,6 +420,70 @@ function buildSessionUser(username, directoryUser, authorization) {
   };
 }
 
+function expandRolePermissions(roleName, roleDefinitions, visited = new Set()) {
+  if (!roleName || visited.has(roleName)) {
+    return [];
+  }
+
+  visited.add(roleName);
+  const definition = roleDefinitions[roleName] || {};
+  const permissions = new Set(toArray(definition.permissions));
+
+  toArray(definition.inherits).forEach((inheritedRole) => {
+    expandRolePermissions(inheritedRole, roleDefinitions, visited).forEach(
+      (permission) => {
+        permissions.add(permission);
+      },
+    );
+  });
+
+  return Array.from(permissions);
+}
+
+function buildAuthorizationFromRoles(roleNames, roleDefinitions) {
+  const roles = Array.from(new Set(toArray(roleNames).filter(Boolean)));
+  const permissions = new Set();
+
+  roles.forEach((roleName) => {
+    expandRolePermissions(roleName, roleDefinitions).forEach((permission) => {
+      permissions.add(permission);
+    });
+  });
+
+  return {
+    isMember: roles.length > 0,
+    roles,
+    roleLabels: roles.map((roleName) => roleDefinitions[roleName]?.label || roleName),
+    permissions: Array.from(permissions).sort(),
+    groups: [],
+  };
+}
+
+function resolveDummyAuthorization(testUser, config) {
+  const roleDefinitions = config.rights?.roles || {};
+  const identity = [
+    testUser?.username,
+    testUser?.displayName,
+    testUser?.department,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  const preferredRoles = ["admin", "leitung", "bearbeiter", "erfasser", "viewer"];
+  const matchedRoles = preferredRoles.filter((roleName) => {
+    const label = String(roleDefinitions[roleName]?.label || "").toLowerCase();
+
+    return identity.includes(roleName) || (label && identity.includes(label));
+  });
+
+  if (matchedRoles.length === 0) {
+    matchedRoles.push("viewer");
+  }
+
+  return buildAuthorizationFromRoles(matchedRoles, roleDefinitions);
+}
+
 async function authenticate(username, password) {
   const normalizedUsername = normalizeLoginUsername(username);
   const normalizedPassword = String(password || "");
@@ -445,10 +509,7 @@ async function authenticate(username, password) {
       isDummy: true,
     };
 
-    const authorization = rights.resolveAuthorization(
-      directoryUser.memberOf,
-      config,
-    );
+    const authorization = resolveDummyAuthorization(testUser, config);
     return {
       ok: true,
       directoryUser,
